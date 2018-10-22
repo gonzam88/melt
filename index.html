@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Melt Polargraph Controller</title>
+
+    <link rel="stylesheet" href="semantic-ui/semantic.min.css" >
+    <link rel="stylesheet" href="style.css" >
+
+    <!-- jquery -->
+    <script src="https://code.jquery.com/jquery-3.1.1.min.js" integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8=" crossorigin="anonymous"></script>
+
+    <!--  Incosolata Font -->
+    <link href="https://fonts.googleapis.com/css?family=Inconsolata" rel="stylesheet">
+
+  </head>
+  <body>
+
+    <div class="ui grid">
+      <div class="three column row" style="padding-bottom:0px">
+        <div class="left floated column">
+
+          <div class="headerContainer">
+
+            <h2 class="ui header">
+              <i class="fire icon"></i>
+              <div class="content">Melt
+                <div class="sub header">a Polargraph Controller</div>
+              </div>
+            </h2>
+
+          </div><!-- headerContainer --></div>
+
+          <div class=" column"></div>
+
+        <div class="right floated column statusContainer">
+          <div class="status">status <span id="statusAlert">
+            <i class="statuserror small exclamation circle icon"></i>
+          </span></div>
+        </div>
+      </div>
+
+    </div>
+
+
+
+
+
+    <div class="ui stackable equal height grid columnsContainer">
+      <div class="six wide column">
+        <div id="" class="dashboardElement">
+
+                <div class="ui secondary pointing four item menu">
+                <a href="#control" class="active item"><i class="gamepad icon"></i></a>
+                <a href="#tools" class="item"><i class="life ring icon"></i></a>
+                <a href="#console" class="item"><i class="terminal icon"></i></a>
+
+                  <a  href="#settings" class="ui item">
+                    <i class="settings icon"></i>
+                  </a>
+
+              </div>
+
+
+              <div class="dashboardMenuContent">
+
+                <!-- CONTROL -->
+                <div id="content-control">
+                  <div class="ui fluid vertical labeled icon buttons">
+
+                    <button class="ui button">
+                      <i class="heart icon"></i>Set Pen In Home
+                    </button>
+
+                    <button class="ui button">
+                      <i class="map icon"></i>Set Pen Custom Postion
+                    </button>
+
+                    <button class="ui button">
+                      <i class="undo icon"></i>Return Home
+                    </button>
+
+
+                    <button class="ui button">
+                      <i class="bug icon"></i>Control Pen Position
+                    </button>
+
+                    <button class="ui button">
+                      <i class="pencil icon"></i>Pen Lift
+                    </button>
+
+                    <button class="ui button">
+                      <i class="map pin icon"></i>Pen Drop
+                    </button>
+
+
+
+                  </div>
+
+
+                </div>
+
+                <!-- TOOLS -->
+                <div id="content-tools">
+                  tools
+                </div>
+
+
+
+                <!-- CONSOLA -->
+                <div id="content-console">
+                  <div class="" id="console"></div>
+                    <div id="consoleInputContainer">
+                      <input id="consoleInput" type="text" placeholder=">_">
+                    </div>
+                </div>
+
+
+
+              <!-- SETTINGS -->
+              <div id="content-settings">
+
+
+                <div class="ui fluid right labeled input mypopup"  data-html="<div class='header'>Set Machine Size</div><div class='content'>C24,[width],[height],END</div>Sets the machine's dimensions in millimetres.">
+                  <div class="ui basic label">Machine Width (mm)</div>
+                  <input type="number" placeholder="1200" id="amount">
+                </div>
+
+                <div class="ui fluid right labeled input">
+                  <div class="ui basic label">Machine Height (mm)</div>
+                  <input type="number" placeholder="800" id="amount">
+                </div>
+
+                <div class="ui fluid right labeled input">
+                  <div class="ui basic label">Machine Width (mm)</div>
+                  <input type="number" placeholder="1200" id="amount">
+                </div>
+
+                <div class="ui fluid right labeled input">
+                  <div class="ui basic label">mm per Rev</div>
+                  <input type="number" placeholder="32" id="amount">
+
+                </div>
+
+                <div class="ui fluid right labeled input">
+                  <div class="ui basic label">Steps per Rev</div>
+                  <input type="number" placeholder="800" id="amount">
+
+                </div>
+
+                <div class="ui fluid right labeled input">
+                  <div class="ui basic label">Step Multiplier</div>
+                  <input type="number" placeholder="16" id="amount">
+                </div>
+
+                <div class="ui fluid right labeled input">
+                  <div class="ui basic label">Max Speed</div>
+                  <input type="number" placeholder="200" id="amount">
+                </div>
+
+                <div class="ui fluid right labeled input">
+                  <div class="ui basic label">Acceleration</div>
+                  <input type="number" placeholder="400" id="amount">
+                </div>
+
+                <div class="ui divider"></div>
+
+                <div class="ui fluid right labeled input">
+                  <div class="ui basic label">Page Width (mm)</div>
+                  <input type="number" placeholder="200" id="amount">
+                </div>
+
+                <div class="ui fluid right labeled input">
+                  <div class="ui basic label">Page Height (mm)</div>
+                  <input type="number" placeholder="400" id="amount">
+                </div>
+
+                <div class="ui divider"></div>
+
+                <h5>Machine Configuration</h5>
+                <div class="ui fluid buttons">
+                  <button class="ui button">Upload</button>
+                  <button class="ui button">Download</button>
+                </div>
+
+                <h5>Configuration File</h5>
+                <div class="ui fluid buttons">
+                  <button class="ui button">Save</button>
+                  <button class="ui button">Save As...</button>
+                  <button class="ui button">Load</button>
+                </div>
+
+                <div class="ui divider"></div>
+
+                <h5>Conect To</h5>
+                <div class="ui tiny vertical fluid buttons" id="serial_connections">
+
+                </div>
+
+                <button class="ui mini labeled icon button">
+                  <i class="undo icon"></i>
+                  Reload List
+                </button>
+
+
+              </div>
+
+            </div>
+          </div>
+
+      </div> <!-- six wide col -->
+
+
+
+      <div class="ten wide column">
+        <div class="dashboardElement">
+
+            <div id="p5container"></div>
+          </div>
+      </div> <!-- six wide col -->
+
+
+
+
+    </div> <!-- ui grid -->
+
+
+  </body>
+  <!-- semantic ui -->
+  <script src="semantic-ui/semantic.min.js" type="text/javascript"></script>
+  <!-- p5 -->
+  <script src="libraries/p5.js" type="text/javascript"></script>
+
+  <!-- p5 libraries -->
+  <script src="libraries/p5.dom.js" type="text/javascript"></script>
+  <script src="libraries/p5.serialport.js" type="text/javascript"></script>
+
+  <!-- melt script -->
+  <script src="sketch.js" type="text/javascript"></script>
+
+</html>
