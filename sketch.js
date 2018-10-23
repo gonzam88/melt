@@ -31,102 +31,218 @@ var statusSuccessIcon = '<i class="statusok small check circle icon"></i>';
 var statusWorkingIcon = '<i class="statusworking notched circle loading icon"></i>';
 var statusElement = $("#statusAlert");
 
+var canvas,lineaMotorDer;
 
-var padre = $("#p5container");
+(function(){
+    // SERIAL Start
+    // Instantiate our SerialPort object
+    serial = new p5.SerialPort();
+    // Let's list the ports available
+    var portlist = serial.list();
+    // Assuming our Arduino is connected, let's open the connection to it
+    // Change this to the name of your arduino's serial port
+    serial.open(portName, options);
+    // Register some callbacks
+    // When we connect to the underlying server
+    serial.on('connected', serverConnected);
+    // When we get a list of serial ports that are available
+    serial.on('list', gotList);
+    // When we some data from the serial port
+    serial.on('data', gotData);
+    // When or if we get an error
+    serial.on('error', gotError);
+    // When our serial port is opened and ready for read/write
+    serial.on('open', gotOpen);
 
-function setup() {
-  var cnv = createCanvas(padre.width(), wToHRatio(padre.width()));
-  cnv.parent('p5container');
-  // Instantiate our SerialPort object
-  serial = new p5.SerialPort();
+      canvas = new fabric.Canvas('myCanvas');
 
-  // Let's list the ports available
-  var portlist = serial.list();
+      window.addEventListener('resize', resizeCanvas, false);
 
-  // Assuming our Arduino is connected, let's open the connection to it
-  // Change this to the name of your arduino's serial port
-  serial.open(portName, options);
-  // Register some callbacks
-  // When we connect to the underlying server
-  serial.on('connected', serverConnected);
-  // When we get a list of serial ports that are available
-  serial.on('list', gotList);
-  // When we some data from the serial port
-  serial.on('data', gotData);
-  // When or if we get an error
-  serial.on('error', gotError);
-  // When our serial port is opened and ready for read/write
-  serial.on('open', gotOpen);
-
-
-  // mousePos = createVector(0, 0);
-  mousePos = new Point();
-  leftMotor = new Point(0, 0);
-  rightMotor = new Point(1, 0);
-
-  page = new RealWorldSquare(800, 600); // New page that 800mm x 600mm
-  machine = new RealWorldSquare(1200, 1000) // My machine is 1200mm x 1000mm
-
-  CalculateSizes();
-}
+      function resizeCanvas() {
+        canvas.setHeight( $('#canvasSizer').height() );
+        canvas.setWidth(  $('#canvasSizer').width() );
+        canvas.renderAll();
+      }
 
 
 
-function draw() {
-  // black background, white text:
-  // background("#523A3A");
-  background("#3C523A");
 
-  // Set colors
-  fill("#81A2C1");
-  stroke("#81A2C1");
+      lineaMotorDer = new fabric.Line([0, 0, 100, 200], {
+              left: 0,
+              top: 0,
+              stroke: 'grey'
+      });
+      canvas.add(lineaMotorDer);
 
+      var motorDer = new fabric.Circle({
+        radius: 6, fill: 'white', left: -6, top: -6, hasControls: false
+      });
+      var motorIzq = new fabric.Circle({
+        radius: 6, fill: 'white', left: 400, top: 0, hasControls: false
+      });
+      canvas.add(motorDer);
+      canvas.add(motorIzq);
 
-  if(mouseX > 0 && mouseX < width && mouseY > 0 && mouseY < height){
-    // El mouse está adentro del area
+      // canvas.isDrawingMode= 1;
+      //     canvas.freeDrawingBrush.color = "purple";
+      //     canvas.freeDrawingBrush.width = 10;
+      //     canvas.renderAll();
 
+    // resize on init
+    resizeCanvas();
+})();
 
+// Mousewheel Zoom
+canvas.on('mouse:wheel', function(opt) {
+  var delta = opt.e.deltaY;
+  var pointer = canvas.getPointer(opt.e);
+  var zoom = canvas.getZoom();
+  zoom = zoom + delta/200;
+  if (zoom > 10) zoom = 10;
+  if (zoom < 0.6) zoom = 0.6;
+  canvas.zoomToPoint({ x: opt.e.offsetX, y: opt.e.offsetY }, zoom);
+  opt.e.preventDefault();
+  opt.e.stopPropagation();
+});
 
-    // mousePos = createVector(mouseX, mouseY);
-    // leftMotor = createVector(0,0);
-    // rightMotor = createVector(width,0);
-    //
-    // leftLength = leftMotor.dist(mousePos) / width;
-    // rightLength = rightMotor.dist(mousePos) / width;
-
-    fill("red");
-
+// Pan
+canvas.on('mouse:down', function(opt) {
+  var evt = opt.e;
+  if (evt.altKey === true) {
+    this.isDragging = true;
+    this.selection = false;
+    this.lastPosX = evt.clientX;
+    this.lastPosY = evt.clientY;
+  }
+});
+canvas.on('mouse:move', function(opt) {
+  if (this.isDragging) {
+    var e = opt.e;
+    this.viewportTransform[4] += e.clientX - this.lastPosX;
+    this.viewportTransform[5] += e.clientY - this.lastPosY;
+    this.requestRenderAll();
+    this.lastPosX = e.clientX;
+    this.lastPosY = e.clientY;
   }
 
-// rect(0,0,100,100);
 
-  // noFill();
-  // strokeWeight(1);
-  // ellipse(0,0,leftLength * width *2,leftLength * width *2);
-  // ellipse(width,0,rightLength * width *2,rightLength * width *2);
-  //
-  // strokeWeight(5);
-  // line(0,0, mousePos.x, mousePos.y);
-  // line(width,0, mousePos.x, mousePos.y);
+});
+canvas.on('mouse:up', function(opt) {
+  this.isDragging = false;
+  this.selection = true;
+});
 
-ellipse(100,100,100,100);
-  // p("left len: " + leftLength + " _ right len: " + rightLength);
-  fill(255);
-  noStroke();
-  text("X: " +mouseX, (mouseX + 10) , mouseY);
-  // page.draw()
+var mouseX, mouseY;
+
+canvas.on('mouse:move', function(options) {
+    mouseX = options.e.layerX;
+    mouseY = options.e.layerY;
+
+    // Linea Motor
+    lineaMotorDer.set({'x2': mouseX, 'y2': mouseY });
+    canvas.renderAll(); // update
+});
+
+canvas.on('path:created', function(e){
+    var your_path = e.path;
+    console.log(your_path);
+    // ... do something with your path
+});
 
 
-}
+// var padre = $("#p5container");
+//
+// function setup() {
+//   var cnv = createCanvas(padre.width(), wToHRatio(padre.width()));
+//   cnv.parent('p5container');
+//   // Instantiate our SerialPort object
+//   serial = new p5.SerialPort();
+//
+//   // Let's list the ports available
+//   var portlist = serial.list();
+//
+//   // Assuming our Arduino is connected, let's open the connection to it
+//   // Change this to the name of your arduino's serial port
+//   serial.open(portName, options);
+//   // Register some callbacks
+//   // When we connect to the underlying server
+//   serial.on('connected', serverConnected);
+//   // When we get a list of serial ports that are available
+//   serial.on('list', gotList);
+//   // When we some data from the serial port
+//   serial.on('data', gotData);
+//   // When or if we get an error
+//   serial.on('error', gotError);
+//   // When our serial port is opened and ready for read/write
+//   serial.on('open', gotOpen);
+//
+//
+//   // mousePos = createVector(0, 0);
+//   mousePos = new Point();
+//   leftMotor = new Point(0, 0);
+//   rightMotor = new Point(1, 0);
+//
+//   page = new RealWorldSquare(1000, 800); // New page that 800mm x 600mm
+//   machine = new RealWorldSquare(1200, 1000) // My machine is 1200mm x 1000mm
+//
+//   CalculateSizes();
+// }
+//
+//
+//
+// function draw() {
+//   // black background, white text:
+//   // background("#523A3A");
+//   background("#3C523A");
+//
+//   // Set colors
+//   fill("#81A2C1");
+//   stroke("#81A2C1");
+//
+//
+//   if(mouseX > 0 && mouseX < width && mouseY > 0 && mouseY < height){
+//     // El mouse está adentro del area
+//
+//
+//
+//     // mousePos = createVector(mouseX, mouseY);
+//     // leftMotor = createVector(0,0);
+//     // rightMotor = createVector(width,0);
+//     //
+//     // leftLength = leftMotor.dist(mousePos) / width;
+//     // rightLength = rightMotor.dist(mousePos) / width;
+//
+//     fill("red");
+//
+//   }
+//
+// // rect(0,0,100,100);
+//
+//   // noFill();
+//   // strokeWeight(1);
+//   // ellipse(0,0,leftLength * width *2,leftLength * width *2);
+//   // ellipse(width,0,rightLength * width *2,rightLength * width *2);
+//   //
+//   // strokeWeight(5);
+//   // line(0,0, mousePos.x, mousePos.y);
+//   // line(width,0, mousePos.x, mousePos.y);
+//
+// ellipse(100,100,100,100);
+//   // p("left len: " + leftLength + " _ right len: " + rightLength);
+//   fill(255);
+//   noStroke();
+//   text("X: " + mouseX, (mouseX + 10) , mouseY);
+//   text("Y: " + mouseY, (mouseX + 10) , mouseY +20);
+//   page.draw()
+//
+//
+// }
 
 function CalculateSizes(){
-  if(machine.width > machine.height){
+
     mmToPxFactor = width / machine.width ;
     console.log(mmToPxFactor);
-  }else{
-    mmToPxFactor = height / machine.height;
-    console.log(mmToPxFactor);
-  }
+
 
 }
 
@@ -197,28 +313,28 @@ function RealWorldSquare(_w, _h){
 
 
 
-function wToHRatio(w){
-  return w / 3 * 2;
-}
+// function wToHRatio(w){
+//   return w / 3 * 2;
+// }
 
-function windowResized() {
-  AjustarTamanno();
-}
-function AjustarTamanno(){
-  let w = padre.width();
-  let h = wToHRatio(padre.width());
-  if(h > padre.height()-20){
-    h = padre.height()-10;
-    w = h / 2 * 3;
-  }
-  resizeCanvas(w, h);
-}
+// function windowResized() {
+//   AjustarTamanno();
+// }
+// function AjustarTamanno(){
+//   let w = padre.width();
+//   let h = wToHRatio(padre.width());
+//   if(h > padre.height()-20){
+//     h = padre.height()-10;
+//     w = h / 2 * 3;
+//   }
+//   resizeCanvas(w, h);
+// }
 
 
 
 // We are connected and ready to go
 function serverConnected() {
-    print("We are connected!");
+    console.log("We are connected!");
 }
 
 // Got the list of ports
@@ -235,13 +351,13 @@ function gotList(thelist) {
 
 // Connected to our serial device
 function gotOpen() {
-  print("Serial Port is open!");
+  console.log("Serial Port is open!");
   statusElement.html(statusSuccessIcon);
 }
 
 // Ut oh, here is an error, let's log it
 function gotError(theerror) {
-  print(theerror);
+  console.log(theerror);
   statusElement.html(statusErrorIcon);
   WriteConsole(theerror);
 }
@@ -287,7 +403,7 @@ function gotData() {
 $("document").ready(function(){
 
   $("#consoleInput").focus();
-  AjustarTamanno();
+  // AjustarTamanno();
 
   // Input console
   $("#consoleInput").keyup(function(e){

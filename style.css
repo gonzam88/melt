@@ -141,3 +141,7 @@ h2 .content, .ui.header .sub.header{
 .statuserror{
   color: #BF6169
 }
+#canvasSizer{
+    width: 100%;
+    height: 100%;
+}
