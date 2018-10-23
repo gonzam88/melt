@@ -17,21 +17,25 @@ var options = {
 };
 
 //var machineWidthRevs = 1500; machineHeightRevs = 1200;
-var mmToPxFactor;
-var mmToRevsFactor;
+var mmToPxFactor = 0.25;
+var pxToMMFactor = 4;
 
 var leftDistRevs = 0, rightDistRevs = 0, leftDistMM = 0, rightDistMM = 0;
 
-var leftLength, leftMotor, rightMotor, rightLength, mousePos, machineSq;
-var page;
-
+var machineWidthMM, machineHeightMM;
 
 var statusErrorIcon = '<i class="statuserror small exclamation circle icon"></i>';
 var statusSuccessIcon = '<i class="statusok small check circle icon"></i>';
 var statusWorkingIcon = '<i class="statusworking notched circle loading icon"></i>';
 var statusElement = $("#statusAlert");
 
-var canvas,lineaMotorDer;
+var canvas,lineaMotorDer, lineaMotorIzq, motorDer, motorIzq, machineSquare;
+var isSettingHomePoint = true;
+var gondolaPosition = new Victor(0,0);
+var gondolaPoint;
+
+var leftMotorPosition = new Victor(0,0);
+var rightMotorPosition = new Victor(machineWidthMM * mmToPxFactor,0);
 
 (function(){
     // SERIAL Start
@@ -54,42 +58,48 @@ var canvas,lineaMotorDer;
     // When our serial port is opened and ready for read/write
     serial.on('open', gotOpen);
 
-      canvas = new fabric.Canvas('myCanvas');
+    canvas = new fabric.Canvas('myCanvas');
 
-      window.addEventListener('resize', resizeCanvas, false);
-
-      function resizeCanvas() {
-        canvas.setHeight( $('#canvasSizer').height() );
-        canvas.setWidth(  $('#canvasSizer').width() );
-        canvas.renderAll();
-      }
-
-
-
-
-      lineaMotorDer = new fabric.Line([0, 0, 100, 200], {
-              left: 0,
-              top: 0,
-              stroke: 'grey'
-      });
-      canvas.add(lineaMotorDer);
-
-      var motorDer = new fabric.Circle({
-        radius: 6, fill: 'white', left: -6, top: -6, hasControls: false
-      });
-      var motorIzq = new fabric.Circle({
-        radius: 6, fill: 'white', left: 400, top: 0, hasControls: false
-      });
-      canvas.add(motorDer);
-      canvas.add(motorIzq);
-
-      // canvas.isDrawingMode= 1;
-      //     canvas.freeDrawingBrush.color = "purple";
-      //     canvas.freeDrawingBrush.width = 10;
-      //     canvas.renderAll();
-
+    window.addEventListener('resize', resizeCanvas, false);
     // resize on init
     resizeCanvas();
+
+
+    lineaMotorDer = new fabric.Line([rightMotorPosition.x, rightMotorPosition.y, 0, 0], {
+        left: 0, top: 0, stroke: 'grey', selectable:false
+    });
+    lineaMotorIzq = new fabric.Line([leftMotorPosition.x, leftMotorPosition.y, 0, 0], {
+        left: 0, top: 0, stroke: 'grey', selectable:false
+    });
+    canvas.add(lineaMotorDer);
+    canvas.add(lineaMotorIzq);
+
+    motorDer = new fabric.Circle({
+        radius: 6, fill: 'white', left: rightMotorPosition.x, top: rightMotorPosition.y, hasControls: false, originX: 'center', originY: 'center'
+    });
+    motorIzq = new fabric.Circle({
+        radius: 6, fill: 'white', left: leftMotorPosition.x, top: rightMotorPosition.y, hasControls: false, originX: 'center', originY: 'center'
+    });
+    canvas.add(motorDer);
+    canvas.add(motorIzq);
+
+    gondolaPoint = new fabric.Circle({
+        radius: 3, fill: '#a4bd8e', left: 0, top: 0, hasControls: false, originX: 'center', originY: 'center'
+    });
+    canvas.add(gondolaPoint);
+
+    machineSquare = new fabric.Rect({
+        width: 0, height: 0,
+        left: 0, top: 0,
+        fill: 'rgba(0,0,0,0)',
+        stroke: "white"
+    })
+    canvas.add(machineSquare);
+
+
+    SetMachineDimensionsMM(1200, 600);
+
+
 })();
 
 // Mousewheel Zoom
@@ -108,13 +118,42 @@ canvas.on('mouse:wheel', function(opt) {
 // Pan
 canvas.on('mouse:down', function(opt) {
   var evt = opt.e;
-  if (evt.altKey === true) {
-    this.isDragging = true;
-    this.selection = false;
-    this.lastPosX = evt.clientX;
-    this.lastPosY = evt.clientY;
+  if (evt.altKey === true || opt.which == 2) {
+      this.isDragging = true;
+      this.selection = false;
+      this.lastPosX = evt.clientX;
+      this.lastPosY = evt.clientY;
+  }else{
+      if( isSettingHomePoint){
+          SetGondolaPosition(mouseX, mouseY);
+      }
   }
 });
+
+function SetMachineDimensionsMM(_w, _h){
+    machineWidthMM = _w;
+    machineHeightMM = _h;
+
+    motorDer.left = machineWidthMM * mmToPxFactor;
+    lineaMotorDer.set({'x1': motorDer.left, 'y1': 0})
+
+    machineSquare.set({'width': motorDer.left, 'height': machineHeightMM * mmToPxFactor});
+
+    canvas.renderAll();
+}
+
+function SetGondolaPosition(_x, _y){
+    gondolaPosition.x = _x;
+    gondolaPosition.y = _y;
+    gondolaPoint.left = _x;
+    gondolaPoint.top = _y;
+    console.log("New Gondola Position: " + gondolaPosition);
+    canvas.renderAll();
+}
+
+var mouseX, mouseY;
+var pointer;
+
 canvas.on('mouse:move', function(opt) {
   if (this.isDragging) {
     var e = opt.e;
@@ -125,23 +164,25 @@ canvas.on('mouse:move', function(opt) {
     this.lastPosY = e.clientY;
   }
 
+  pointer = canvas.getPointer(options.e);
+  mouseX = pointer.x;
+  mouseY = pointer.y;
+  // Linea Motor
+  lineaMotorDer.set({'x2': mouseX, 'y2': mouseY });
+  lineaMotorIzq.set({'x2': mouseX, 'y2': mouseY});
+  canvas.renderAll(); // update
 
-});
+  $("#canvasMetaData .x").html( Math.round(mouseX) );
+  $("#canvasMetaData .y").html( Math.round(mouseY) );
+  $("#canvasMetaData .xmm").html( (mouseX * pxToMMFactor).toFixed(1) );
+  $("#canvasMetaData .ymm").html( (mouseY * pxToMMFactor).toFixed(1) );
+}); // mouse move
+
 canvas.on('mouse:up', function(opt) {
   this.isDragging = false;
   this.selection = true;
 });
 
-var mouseX, mouseY;
-
-canvas.on('mouse:move', function(options) {
-    mouseX = options.e.layerX;
-    mouseY = options.e.layerY;
-
-    // Linea Motor
-    lineaMotorDer.set({'x2': mouseX, 'y2': mouseY });
-    canvas.renderAll(); // update
-});
 
 canvas.on('path:created', function(e){
     var your_path = e.path;
@@ -238,13 +279,7 @@ canvas.on('path:created', function(e){
 //
 // }
 
-function CalculateSizes(){
 
-    mmToPxFactor = width / machine.width ;
-    console.log(mmToPxFactor);
-
-
-}
 
 function Point(_x, _y){ // x, y son coordenadas de espacio de canvas
   "use strict"; // constructor
@@ -502,4 +537,41 @@ function hashChanged(h){
     currContent = newContent;
   // }
 
+}
+
+
+function resizeCanvas() {
+  canvas.setHeight( $('#canvasSizer').height() );
+  canvas.setWidth(  $('#canvasSizer').width() );
+
+  /*
+  * Grid
+  */
+  let offset = -200;
+  options = {
+     distance: 20,
+     width: canvas.width,
+     height: canvas.height,
+     param: {
+       stroke: '#4c5669',
+       strokeWidth: 1,
+       selectable: false
+     }
+  },
+     gridLen = options.width / options.distance;
+
+ for (var i = 0; i < gridLen; i++) {
+   var distance   = (i * options.distance) + offset,
+       horizontal = new fabric.Line([ distance, + offset, distance, options.width + offset], options.param),
+       vertical   = new fabric.Line([ + offset, distance, options.width  + offset, distance], options.param);
+   canvas.add(horizontal);
+   canvas.add(vertical);
+   if(i%5 === 0){
+     horizontal.set({stroke: '#7a7d82'});
+     vertical.set({stroke: '#7a7d82'});
+   };
+ };
+  // End grid
+
+  canvas.renderAll();
 }
