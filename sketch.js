@@ -16,6 +16,15 @@ var options = {
   baudrate: 57600
 };
 
+//var machineWidthRevs = 1500; machineHeightRevs = 1200;
+var mmToPxFactor;
+var mmToRevsFactor;
+
+var leftDistRevs = 0, rightDistRevs = 0, leftDistMM = 0, rightDistMM = 0;
+
+var leftLength, leftMotor, rightMotor, rightLength, mousePos, machineSq;
+var page;
+
 
 var statusErrorIcon = '<i class="statuserror small exclamation circle icon"></i>';
 var statusSuccessIcon = '<i class="statusok small check circle icon"></i>';
@@ -48,7 +57,145 @@ function setup() {
   serial.on('error', gotError);
   // When our serial port is opened and ready for read/write
   serial.on('open', gotOpen);
+
+
+  // mousePos = createVector(0, 0);
+  mousePos = new Point();
+  leftMotor = new Point(0, 0);
+  rightMotor = new Point(1, 0);
+
+  page = new RealWorldSquare(800, 600); // New page that 800mm x 600mm
+  machine = new RealWorldSquare(1200, 1000) // My machine is 1200mm x 1000mm
+
+  CalculateSizes();
 }
+
+
+
+function draw() {
+  // black background, white text:
+  // background("#523A3A");
+  background("#3C523A");
+
+  // Set colors
+  fill("#81A2C1");
+  stroke("#81A2C1");
+
+
+  if(mouseX > 0 && mouseX < width && mouseY > 0 && mouseY < height){
+    // El mouse está adentro del area
+
+
+
+    // mousePos = createVector(mouseX, mouseY);
+    // leftMotor = createVector(0,0);
+    // rightMotor = createVector(width,0);
+    //
+    // leftLength = leftMotor.dist(mousePos) / width;
+    // rightLength = rightMotor.dist(mousePos) / width;
+
+    fill("red");
+
+  }
+
+// rect(0,0,100,100);
+
+  // noFill();
+  // strokeWeight(1);
+  // ellipse(0,0,leftLength * width *2,leftLength * width *2);
+  // ellipse(width,0,rightLength * width *2,rightLength * width *2);
+  //
+  // strokeWeight(5);
+  // line(0,0, mousePos.x, mousePos.y);
+  // line(width,0, mousePos.x, mousePos.y);
+
+ellipse(100,100,100,100);
+  // p("left len: " + leftLength + " _ right len: " + rightLength);
+  fill(255);
+  noStroke();
+  text("X: " +mouseX, (mouseX + 10) , mouseY);
+  // page.draw()
+
+
+}
+
+function CalculateSizes(){
+  if(machine.width > machine.height){
+    mmToPxFactor = width / machine.width ;
+    console.log(mmToPxFactor);
+  }else{
+    mmToPxFactor = height / machine.height;
+    console.log(mmToPxFactor);
+  }
+
+}
+
+function Point(_x, _y){ // x, y son coordenadas de espacio de canvas
+  "use strict"; // constructor
+  this.pos = createVector(_x / width, _y / height) // pero aca X e Y se guardan como coordenadas normalizadas (de 0 a 1);
+
+  this.posCartesian = createVector(this.x, this.y);
+
+  this.posMM = function(){
+    return createVector(this.pos.x * machineWidthMM, this.pos.y * machineHeightMM);
+  }
+  this.posRevs = function(){
+    return createVector(this.pos.x * machineWidthRevs, this.pos.y * machineWidthRevs);
+  }
+
+  this.leftDist = function(){
+    return this.pos.dist(leftMotor.pos);
+  }
+  this.rightDist = function(){
+    return this.pos.dist(rightMotor.pos);
+  }
+
+}
+
+function RealWorldSquare(_w, _h){
+
+  // this.pos = createVector(_x / width, _y / height);
+  this.width = _w;
+  this.height = _h;
+
+  this.isVertical = function(){
+    if(this.width > this.height){
+      return false;
+    }else{
+      return true;
+    } // TODO Excepcion para cuando es cuadrado. No es grave
+  }
+
+  this.pixelPosition = function(){
+    return createVector(this.pos.x * width, this.pos.y * height);
+  }
+  this.pixelHeight = function(){
+    return this.height * mmToPxFactor;
+  }
+  this.pixelWidth = function(){
+    return this.width * mmToPxFactor;
+  }
+
+  this.draw = function(){
+
+    let w = this.width * mmToPxFactor;
+    let h = this.height * mmToPxFactor;
+
+    let xpos = (width/2) - (w / 2);
+    let ypos = 0;
+    // xpos -= w/2;
+    // // Alineacion vertical = top
+    // // Alineacion horizontal = middle
+    rect(xpos, ypos, w, h);
+    // console.log(xpos, ypos, w, h);
+  }
+
+}
+
+
+
+
+
 
 function wToHRatio(w){
   return w / 3 * 2;
@@ -67,35 +214,8 @@ function AjustarTamanno(){
   resizeCanvas(w, h);
 }
 
-var leftLength, leftMotor, rightMotor, rightLength, mousePos;
-
-function draw() {
-  // black background, white text:
-  background("#3A4251");
-
-  // Set colors
-  fill("#81A2C1");
-  stroke("#81A2C1");
 
 
-  strokeWeight(5);
-  line(0,0, mouseX, mouseY);
-  line(width,0, mouseX, mouseY);
-
-  mousePos = createVector(mouseX, mouseY);
-  leftMotor = createVector(0,0);
-  rightMotor = createVector(width,0);
-
-  leftLength = leftMotor.dist(mousePos);
-  rightLength = rightMotor.dist(mousePos);
-
-  noFill();
-  strokeWeight(1);
-  ellipse(0,0,leftLength*2,leftLength*2);
-  ellipse(width,0,rightLength*2,rightLength*2);
-
-
-}
 // We are connected and ready to go
 function serverConnected() {
     print("We are connected!");
