@@ -17,12 +17,16 @@ var options = {
 };
 
 //var machineWidthRevs = 1500; machineHeightRevs = 1200;
+var machineWidthSteps, machineHeightSteps;
+var machineWidthMM, machineHeightMM;
+
 var mmToPxFactor = 0.25;
 var pxToMMFactor = 4;
+var pxToStepsFactor; // TODO
 
 var leftDistRevs = 0, rightDistRevs = 0, leftDistMM = 0, rightDistMM = 0;
 
-var machineWidthMM, machineHeightMM;
+
 
 var statusErrorIcon = '<i class="statuserror small exclamation circle icon"></i>';
 var statusSuccessIcon = '<i class="statusok small check circle icon"></i>';
@@ -30,7 +34,8 @@ var statusWorkingIcon = '<i class="statusworking notched circle loading icon"></
 var statusElement = $("#statusAlert");
 
 var canvas,lineaMotorDer, lineaMotorIzq, motorDer, motorIzq, machineSquare;
-var isSettingHomePoint = true;
+var mouseVector = new Victor(0,0);
+var isSettingGondolaPos = true;
 var gondolaPosition = new Victor(0,0);
 var gondolaPoint;
 
@@ -83,6 +88,8 @@ var rightMotorPosition = new Victor(machineWidthMM * mmToPxFactor,0);
     canvas.add(motorDer);
     canvas.add(motorIzq);
 
+
+
     gondolaPoint = new fabric.Circle({
         radius: 3, fill: '#a4bd8e', left: 0, top: 0, hasControls: false, originX: 'center', originY: 'center'
     });
@@ -92,7 +99,8 @@ var rightMotorPosition = new Victor(machineWidthMM * mmToPxFactor,0);
         width: 0, height: 0,
         left: 0, top: 0,
         fill: 'rgba(0,0,0,0)',
-        stroke: "white"
+        stroke: "white",
+        hasControls: false,
     })
     canvas.add(machineSquare);
 
@@ -124,7 +132,7 @@ canvas.on('mouse:down', function(opt) {
       this.lastPosX = evt.clientX;
       this.lastPosY = evt.clientY;
   }else{
-      if( isSettingHomePoint){
+      if( isSettingGondolaPos){
           SetGondolaPosition(mouseX, mouseY);
       }
   }
@@ -176,6 +184,12 @@ canvas.on('mouse:move', function(opt) {
   $("#canvasMetaData .y").html( Math.round(mouseY) );
   $("#canvasMetaData .xmm").html( (mouseX * pxToMMFactor).toFixed(1) );
   $("#canvasMetaData .ymm").html( (mouseY * pxToMMFactor).toFixed(1) );
+
+  mouseVector.x = mouseX;
+  mouseVector.y = mouseY;
+
+  let disToRMotor = mouseVector.distance(rightMotorPosition);
+  $("#canvasMetaData .lmotomm").html( (disToRMotor * pxToMMFactor).toFixed(1) );
 }); // mouse move
 
 canvas.on('mouse:up', function(opt) {
@@ -189,182 +203,6 @@ canvas.on('path:created', function(e){
     console.log(your_path);
     // ... do something with your path
 });
-
-
-// var padre = $("#p5container");
-//
-// function setup() {
-//   var cnv = createCanvas(padre.width(), wToHRatio(padre.width()));
-//   cnv.parent('p5container');
-//   // Instantiate our SerialPort object
-//   serial = new p5.SerialPort();
-//
-//   // Let's list the ports available
-//   var portlist = serial.list();
-//
-//   // Assuming our Arduino is connected, let's open the connection to it
-//   // Change this to the name of your arduino's serial port
-//   serial.open(portName, options);
-//   // Register some callbacks
-//   // When we connect to the underlying server
-//   serial.on('connected', serverConnected);
-//   // When we get a list of serial ports that are available
-//   serial.on('list', gotList);
-//   // When we some data from the serial port
-//   serial.on('data', gotData);
-//   // When or if we get an error
-//   serial.on('error', gotError);
-//   // When our serial port is opened and ready for read/write
-//   serial.on('open', gotOpen);
-//
-//
-//   // mousePos = createVector(0, 0);
-//   mousePos = new Point();
-//   leftMotor = new Point(0, 0);
-//   rightMotor = new Point(1, 0);
-//
-//   page = new RealWorldSquare(1000, 800); // New page that 800mm x 600mm
-//   machine = new RealWorldSquare(1200, 1000) // My machine is 1200mm x 1000mm
-//
-//   CalculateSizes();
-// }
-//
-//
-//
-// function draw() {
-//   // black background, white text:
-//   // background("#523A3A");
-//   background("#3C523A");
-//
-//   // Set colors
-//   fill("#81A2C1");
-//   stroke("#81A2C1");
-//
-//
-//   if(mouseX > 0 && mouseX < width && mouseY > 0 && mouseY < height){
-//     // El mouse está adentro del area
-//
-//
-//
-//     // mousePos = createVector(mouseX, mouseY);
-//     // leftMotor = createVector(0,0);
-//     // rightMotor = createVector(width,0);
-//     //
-//     // leftLength = leftMotor.dist(mousePos) / width;
-//     // rightLength = rightMotor.dist(mousePos) / width;
-//
-//     fill("red");
-//
-//   }
-//
-// // rect(0,0,100,100);
-//
-//   // noFill();
-//   // strokeWeight(1);
-//   // ellipse(0,0,leftLength * width *2,leftLength * width *2);
-//   // ellipse(width,0,rightLength * width *2,rightLength * width *2);
-//   //
-//   // strokeWeight(5);
-//   // line(0,0, mousePos.x, mousePos.y);
-//   // line(width,0, mousePos.x, mousePos.y);
-//
-// ellipse(100,100,100,100);
-//   // p("left len: " + leftLength + " _ right len: " + rightLength);
-//   fill(255);
-//   noStroke();
-//   text("X: " + mouseX, (mouseX + 10) , mouseY);
-//   text("Y: " + mouseY, (mouseX + 10) , mouseY +20);
-//   page.draw()
-//
-//
-// }
-
-
-
-function Point(_x, _y){ // x, y son coordenadas de espacio de canvas
-  "use strict"; // constructor
-  this.pos = createVector(_x / width, _y / height) // pero aca X e Y se guardan como coordenadas normalizadas (de 0 a 1);
-
-  this.posCartesian = createVector(this.x, this.y);
-
-  this.posMM = function(){
-    return createVector(this.pos.x * machineWidthMM, this.pos.y * machineHeightMM);
-  }
-  this.posRevs = function(){
-    return createVector(this.pos.x * machineWidthRevs, this.pos.y * machineWidthRevs);
-  }
-
-  this.leftDist = function(){
-    return this.pos.dist(leftMotor.pos);
-  }
-  this.rightDist = function(){
-    return this.pos.dist(rightMotor.pos);
-  }
-
-}
-
-function RealWorldSquare(_w, _h){
-
-  // this.pos = createVector(_x / width, _y / height);
-  this.width = _w;
-  this.height = _h;
-
-  this.isVertical = function(){
-    if(this.width > this.height){
-      return false;
-    }else{
-      return true;
-    } // TODO Excepcion para cuando es cuadrado. No es grave
-  }
-
-  this.pixelPosition = function(){
-    return createVector(this.pos.x * width, this.pos.y * height);
-  }
-  this.pixelHeight = function(){
-    return this.height * mmToPxFactor;
-  }
-  this.pixelWidth = function(){
-    return this.width * mmToPxFactor;
-  }
-
-  this.draw = function(){
-
-    let w = this.width * mmToPxFactor;
-    let h = this.height * mmToPxFactor;
-
-    let xpos = (width/2) - (w / 2);
-    let ypos = 0;
-    // xpos -= w/2;
-    // // Alineacion vertical = top
-    // // Alineacion horizontal = middle
-    rect(xpos, ypos, w, h);
-    // console.log(xpos, ypos, w, h);
-  }
-
-}
-
-
-
-
-
-
-// function wToHRatio(w){
-//   return w / 3 * 2;
-// }
-
-// function windowResized() {
-//   AjustarTamanno();
-// }
-// function AjustarTamanno(){
-//   let w = padre.width();
-//   let h = wToHRatio(padre.width());
-//   if(h > padre.height()-20){
-//     h = padre.height()-10;
-//     w = h / 2 * 3;
-//   }
-//   resizeCanvas(w, h);
-// }
-
 
 
 // We are connected and ready to go
@@ -543,7 +381,6 @@ function hashChanged(h){
 function resizeCanvas() {
   canvas.setHeight( $('#canvasSizer').height() );
   canvas.setWidth(  $('#canvasSizer').width() );
-
   /*
   * Grid
   */
@@ -558,20 +395,21 @@ function resizeCanvas() {
        selectable: false
      }
   },
-     gridLen = options.width / options.distance;
+  gridLen = options.width / options.distance;
 
- for (var i = 0; i < gridLen; i++) {
-   var distance   = (i * options.distance) + offset,
-       horizontal = new fabric.Line([ distance, + offset, distance, options.width + offset], options.param),
-       vertical   = new fabric.Line([ + offset, distance, options.width  + offset, distance], options.param);
-   canvas.add(horizontal);
-   canvas.add(vertical);
-   if(i%5 === 0){
-     horizontal.set({stroke: '#7a7d82'});
-     vertical.set({stroke: '#7a7d82'});
-   };
- };
-  // End grid
+
+  for (var i = 0; i < gridLen; i++) {
+      var distance   = (i * options.distance) + offset,
+        horizontal = new fabric.Line([ distance, + offset, distance, options.width + offset], options.param),
+        vertical   = new fabric.Line([ + offset, distance, options.width  + offset, distance], options.param);
+        canvas.add(horizontal);
+        canvas.add(vertical);
+        if(i%5 === 0){
+            horizontal.set({stroke: '#7a7d82'});
+            vertical.set({stroke: '#7a7d82'});
+        };
+    };
+    // End grid
 
   canvas.renderAll();
 }
