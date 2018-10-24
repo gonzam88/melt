@@ -1,9 +1,5 @@
 /*
-  Test this with the Arduino sketch echo.ino, in the p5.serialport
-  examples/echo directory.
-
-  Try at varying baudrates, up to 115200 (make sure to change
-  Arduino to matching baud rate)
+	https://github.com/euphy/polargraph/wiki/Polargraph-machine-commands-and-responses
 */
 
 var serial; // variable to hold an instance of the serialport library
@@ -35,12 +31,18 @@ var statusElement = $("#statusAlert");
 
 var canvas,lineaMotorDer, lineaMotorIzq, motorDer, motorIzq, machineSquare;
 var mouseVector = new Victor(0,0);
-var isSettingGondolaPos = true;
+var isSettingGondolaPos = false;
+var isSettingNewPenPosition = false;
 var gondolaPosition = new Victor(0,0);
+var nextPenPosition = new Victor(0,0);
 var gondolaPoint;
 
 var leftMotorPosition = new Victor(0,0);
-var rightMotorPosition = new Victor(machineWidthMM * mmToPxFactor,0);
+var rightMotorPosition = new Victor(0,0);
+
+var newPenPositionArrow;
+
+var newPenPositionCircle;
 
 (function(){
     // SERIAL Start
@@ -80,10 +82,24 @@ var rightMotorPosition = new Victor(machineWidthMM * mmToPxFactor,0);
     canvas.add(lineaMotorIzq);
 
     motorDer = new fabric.Circle({
-        radius: 6, fill: 'white', left: rightMotorPosition.x, top: rightMotorPosition.y, hasControls: false, originX: 'center', originY: 'center'
+        radius: 6, fill: 'white', left: rightMotorPosition.x, top: rightMotorPosition.y, hasControls: false, originX: 'center', originY: 'center',
+		lockRotation: true,
+		lockMovementX: true,
+		lockMovementY: true,
+		lockScalingX: true,
+		lockScalingY: true,
+		lockUniScaling: true,
+        hasControls: false
     });
     motorIzq = new fabric.Circle({
-        radius: 6, fill: 'white', left: leftMotorPosition.x, top: rightMotorPosition.y, hasControls: false, originX: 'center', originY: 'center'
+        radius: 6, fill: 'white', left: leftMotorPosition.x, top: rightMotorPosition.y, hasControls: false, originX: 'center', originY: 'center',
+		lockRotation: true,
+		lockMovementX: true,
+		lockMovementY: true,
+		lockScalingX: true,
+		lockScalingY: true,
+		lockUniScaling: true,
+        hasControls: false
     });
     canvas.add(motorDer);
     canvas.add(motorIzq);
@@ -91,7 +107,14 @@ var rightMotorPosition = new Victor(machineWidthMM * mmToPxFactor,0);
 
 
     gondolaPoint = new fabric.Circle({
-        radius: 3, fill: '#a4bd8e', left: 0, top: 0, hasControls: false, originX: 'center', originY: 'center'
+        radius: 3, fill: '#a4bd8e', left: 0, top: 0, hasControls: false, originX: 'center', originY: 'center',
+		lockRotation: true,
+		lockMovementX: true,
+		lockMovementY: true,
+		lockScalingX: true,
+		lockScalingY: true,
+		lockUniScaling: true,
+        hasControls: false
     });
     canvas.add(gondolaPoint);
 
@@ -100,13 +123,36 @@ var rightMotorPosition = new Victor(machineWidthMM * mmToPxFactor,0);
         left: 0, top: 0,
         fill: 'rgba(0,0,0,0)',
         stroke: "white",
-        hasControls: false,
+		lockRotation: true,
+		lockMovementX: true,
+		lockMovementY: true,
+		lockScalingX: true,
+		lockScalingY: true,
+		lockUniScaling: true,
+        hasControls: false
     })
     canvas.add(machineSquare);
 
+	newPenPositionArrow = new fabric.Line([leftMotorPosition.x, leftMotorPosition.y, 0, 0], {
+        left: 0, top: 0, stroke: 'grey', selectable:false});
+	canvas.add(newPenPositionArrow);
+
+	newPenPositionCircle = new fabric.Circle({
+		   radius: 3, fill: '#B38FAC', left: 0, top: 0, hasControls: false, originX: 'center', originY: 'center',
+		   lockRotation: true,
+		   lockMovementX: true,
+		   lockMovementY: true,
+		   lockScalingX: true,
+		   lockScalingY: true,
+		   lockUniScaling: true,
+		   hasControls: false
+	});
+	canvas.add(newPenPositionCircle);
+
+	/* *********** */
 
     SetMachineDimensionsMM(1200, 600);
-
+	SetMachineDimensionsSteps(1800, 675);
 
 })();
 
@@ -134,15 +180,21 @@ canvas.on('mouse:down', function(opt) {
   }else{
       if( isSettingGondolaPos){
           SetGondolaPosition(mouseX, mouseY);
-      }
+		  isSettingGondolaPos = false; // SHould this go here or inside the function SetGondolaPosition ?
+
+	  }else if( isSettingNewPenPosition ){
+		  SetNextPenPosition(mouseX, mouseY);
+		  isSettingNewPenPosition = false;
+	  }
   }
 });
 
 function SetMachineDimensionsMM(_w, _h){
     machineWidthMM = _w;
     machineHeightMM = _h;
+	rightMotorPosition.x = machineWidthMM * mmToPxFactor;
 
-    motorDer.left = machineWidthMM * mmToPxFactor;
+    motorDer.left = rightMotorPosition.x;
     lineaMotorDer.set({'x1': motorDer.left, 'y1': 0})
 
     machineSquare.set({'width': motorDer.left, 'height': machineHeightMM * mmToPxFactor});
@@ -150,13 +202,41 @@ function SetMachineDimensionsMM(_w, _h){
     canvas.renderAll();
 }
 
+function SetMachineDimensionsSteps(_w, _h){
+	machineWidthSteps = _w;
+	machineHeightSteps = _h;
+	pxToStepsFactor = pxToMMFactor * (machineWidthSteps / machineWidthMM );
+}
+
 function SetGondolaPosition(_x, _y){
     gondolaPosition.x = _x;
     gondolaPosition.y = _y;
     gondolaPoint.left = _x;
     gondolaPoint.top = _y;
+	canvas.renderAll();
     console.log("New Gondola Position: " + gondolaPosition);
-    canvas.renderAll();
+
+	let rightMotorDist = gondolaPosition.distance(rightMotorPosition) * pxToStepsFactor;
+	let leftMotorDist = gondolaPosition.distance(leftMotorPosition) * pxToStepsFactor;
+	let cmd = "C09,"+ Math.round(leftMotorDist) +","+ Math.round(rightMotorDist) +",END";
+	SerialSend(cmd);
+	console.log("New Pos: " + cmd);
+}
+
+function SetNextPenPosition(_x, _y){
+	nextPenPosition.x = _x;
+	nextPenPosition.y = _y;
+	newPenPositionCircle.left = _x;
+	newPenPositionCircle.top = _y;
+	canvas.renderAll();
+
+	console.log("Next Position: " + nextPenPosition);
+
+	let rightMotorDist = nextPenPosition.distance(rightMotorPosition) * pxToStepsFactor;
+	let leftMotorDist = nextPenPosition.distance(leftMotorPosition) * pxToStepsFactor;
+	let cmd = "C17,"+ Math.round(leftMotorDist) +","+ Math.round(rightMotorDist) +",2,END";
+	SerialSend(cmd);
+	console.log("New Pos: " + cmd);
 }
 
 var mouseX, mouseY;
@@ -188,8 +268,14 @@ canvas.on('mouse:move', function(opt) {
   mouseVector.x = mouseX;
   mouseVector.y = mouseY;
 
+  let disToLMotor = mouseVector.distance(leftMotorPosition);
+  $("#canvasMetaData .lmotomm").html( (disToLMotor * pxToMMFactor).toFixed(1) );
+  $("#canvasMetaData .lmotosteps").html( (disToLMotor * pxToStepsFactor).toFixed(1));
+
   let disToRMotor = mouseVector.distance(rightMotorPosition);
-  $("#canvasMetaData .lmotomm").html( (disToRMotor * pxToMMFactor).toFixed(1) );
+  $("#canvasMetaData .rmotomm").html( (disToRMotor * pxToMMFactor).toFixed(1) );
+  $("#canvasMetaData .rmotosteps").html( (disToRMotor * pxToStepsFactor).toFixed(1));
+
 }); // mouse move
 
 canvas.on('mouse:up', function(opt) {
@@ -203,6 +289,27 @@ canvas.on('path:created', function(e){
     console.log(your_path);
     // ... do something with your path
 });
+
+
+$("#set-custom-postion").click(function(){
+	isSettingGondolaPos = true;
+})
+
+
+
+$("#control-pen-position").click(function(){
+	// dif = new Victor();
+	isSettingNewPenPosition = true;
+
+})
+
+$("#pen-lift").click(function(){
+	SerialSend("C14,UP,END");
+})
+
+$("#pen-drop").click(function(){
+	SerialSend("C13,DOWN,END");
+})
 
 
 // We are connected and ready to go
@@ -249,6 +356,7 @@ var lastSentCmd = ""; // TODO hacer de esto un array
 
 function SerialSend(d){
   serial.write(d + '\n');
+  WriteConsole(d)
 }
 
 // There is data available to work with from the serial port

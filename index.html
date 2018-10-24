@@ -68,28 +68,27 @@
                 <div id="content-control">
                   <div class="ui fluid vertical labeled icon buttons">
 
-                    <button class="ui button">
+                    <button class="ui button" id="set-home-postion">
                       <i class="heart icon"></i>Set Home Position
                     </button>
 
-                    <button class="ui button">
+                    <button class="ui button" id="set-custom-postion">
                       <i class="map icon"></i>Set Custom Postion
                     </button>
 
-                    <button class="ui button">
-                      <i class="undo icon"></i>Return Home
-                    </button>
-
-
-                    <button class="ui button">
+					<button class="ui button" id="control-pen-position">
                       <i class="bug icon"></i>Control Pen Position
                     </button>
 
-                    <button class="ui button">
+                    <button class="ui button" id="return-home">
+                      <i class="undo icon"></i>Return Home
+                    </button>
+
+                    <button class="ui button mypopup" id="pen-lift" data-html="<div class='header'>Pen Lift</div><div class='content'><pre>C14,UP,END</pre>Moves the pen lift servo motor into the up, raised, or lifted position. The parameter behaves in the same way as C13.</div>">
                       <i class="pencil icon"></i>Pen Lift
                     </button>
 
-                    <button class="ui button">
+                    <button class="ui button mypopup" id="pen-drop" data-html="<div class='header'>Pen Drop</div><div class='content'><pre>C13,DOWN,END</pre>oves the pen lift servo motor into the down, lowered, or drawing position, with the pen tip against the page. The machine has a set up position saved in EEPROM, but given an integer parameter, it moves the servo to that position instead, and will use that position as up until the machine is next reset - even if it is not stated explicitly on subsequent C13 calls. Use C45 to save specific lift servo positions to EEPROM.</div>">
                       <i class="map pin icon"></i>Pen Drop
                     </button>
 
@@ -221,12 +220,12 @@
 
             </div>
             <div id="canvasMetaData">
-                X: <span class="x"></span>
+                X: <span class="x"></span>,
                 Y: <span class="y"></span><br />
-                X: <span class="xmm"></span> mm
+                X: <span class="xmm"></span> mm,
                 Y: <span class="ymm"></span> mm<br />
-                L Motor: <span class="lmotomm"></span> mm <span class="lmotosteps"></span> steps<br />
-                R Motor: <span class="rmotomm"></span> mm <span class="rmotosteps"></span> steps<br />
+                L Motor: <span class="lmotomm"></span> mm, <span class="lmotosteps"></span> steps<br />
+                R Motor: <span class="rmotomm"></span> mm, <span class="rmotosteps"></span> steps<br />
 
             </div>
             <!-- <div id="p5container">
