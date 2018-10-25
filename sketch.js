@@ -3,12 +3,12 @@
 */
 
 var serial; // variable to hold an instance of the serialport library
-var portName = '/dev/cu.usbmodem614'; // fill in your serial port name here
+var portName = '/dev/cu.usbmodem641'; // fill in your serial port name here
 var inData; // for incoming serial data
 var inByte;
 var byteCount = 0;
 var output = 0;
-var options = {
+var serialOptions = {
   baudrate: 57600
 };
 
@@ -52,7 +52,7 @@ var newPenPositionCircle;
     var portlist = serial.list();
     // Assuming our Arduino is connected, let's open the connection to it
     // Change this to the name of your arduino's serial port
-    serial.open(portName, options);
+    // serial.open(portName, serialOptions);
     // Register some callbacks
     // When we connect to the underlying server
     serial.on('connected', serverConnected);
@@ -151,8 +151,8 @@ var newPenPositionCircle;
 
 	/* *********** */
 
-    SetMachineDimensionsMM(1200, 600);
-	SetMachineDimensionsSteps(1800, 675);
+    SetMachineDimensionsMM(1200, 800);
+	  SetMachineDimensionsSteps(7500, 6250);
 
 })();
 
@@ -184,7 +184,7 @@ canvas.on('mouse:down', function(opt) {
 
 	  }else if( isSettingNewPenPosition ){
 		  SetNextPenPosition(mouseX, mouseY);
-		  isSettingNewPenPosition = false;
+		  // isSettingNewPenPosition = false;
 	  }
   }
 });
@@ -329,6 +329,7 @@ function gotList(thelist) {
   $("#serial_connections").html(serialConnectionsContent);
 }
 
+
 // Connected to our serial device
 function gotOpen() {
   console.log("Serial Port is open!");
@@ -445,10 +446,11 @@ $("document").ready(function(){
 
 
     $("#serial_connections").on("click", "button", function(){
-      // console.log("sd");
+      // serial.close();
+      console.log("sd");
       portName = $(this).data("connectto");
       console.log("Connectando a ", portName);
-      serial.open(portName, options);
+      serial.open(portName, serialOptions);
     })
 
 
