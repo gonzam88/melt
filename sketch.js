@@ -14,14 +14,25 @@ var serialOptions = {
 
 //var machineWidthRevs = 1500; machineHeightRevs = 1200;
 var machineWidthSteps, machineHeightSteps;
+var mmPerRev, stepsPerPrev;
+var stepMultiplier;
+var downPos, upPos;
+var mmPerStep, stepsPerMM;
+var pageWidth, pageHeight;
 var machineWidthMM, machineHeightMM;
+var leftMotorPositionSteps, rightMotorPositionSteps;
+var isMachineReady = false;
+var isQueueActive = true;
+
+var machineQueue = [];
 
 var mmToPxFactor = 0.25;
 var pxToMMFactor = 4;
-var pxToStepsFactor; // TODO
+var  pxPerStep; // TODO
 
 var leftDistRevs = 0, rightDistRevs = 0, leftDistMM = 0, rightDistMM = 0;
 
+var syncedLeft, syncedRight;
 
 
 var statusErrorIcon = '<i class="statuserror small exclamation circle icon"></i>';
@@ -33,19 +44,19 @@ var canvas,lineaMotorDer, lineaMotorIzq, motorDer, motorIzq, machineSquare;
 var mouseVector = new Victor(0,0);
 var isSettingGondolaPos = false;
 var isSettingNewPenPosition = false;
-var gondolaPosition = new Victor(0,0);
+var gondolaPositionPixels = new Victor(0,0);
 var nextPenPosition = new Victor(0,0);
 var gondolaPoint;
 
-var leftMotorPosition = new Victor(0,0);
-var rightMotorPosition = new Victor(0,0);
+var leftMotorPositionPixels = new Victor(0,0);
+var rightMotorPositionPixels = new Victor(0,0);
 
 var newPenPositionArrow;
 
 var newPenPositionCircle;
 
 (function(){
-    // SERIAL Start
+	// SERIAL Start
     // Instantiate our SerialPort object
     serial = new p5.SerialPort();
     // Let's list the ports available
@@ -66,23 +77,26 @@ var newPenPositionCircle;
     serial.on('open', gotOpen);
 
     canvas = new fabric.Canvas('myCanvas');
+	canvas.freeDrawingBrush.color = "purple";
+    canvas.freeDrawingBrush.width = 2;
+	canvas.isDrawingMode = false;
 
     window.addEventListener('resize', resizeCanvas, false);
     // resize on init
     resizeCanvas();
 
 
-    lineaMotorDer = new fabric.Line([rightMotorPosition.x, rightMotorPosition.y, 0, 0], {
+    lineaMotorDer = new fabric.Line([rightMotorPositionPixels.x, rightMotorPositionPixels.y, 0, 0], {
         left: 0, top: 0, stroke: 'grey', selectable:false
     });
-    lineaMotorIzq = new fabric.Line([leftMotorPosition.x, leftMotorPosition.y, 0, 0], {
+    lineaMotorIzq = new fabric.Line([leftMotorPositionPixels.x, leftMotorPositionPixels.y, 0, 0], {
         left: 0, top: 0, stroke: 'grey', selectable:false
     });
     canvas.add(lineaMotorDer);
     canvas.add(lineaMotorIzq);
 
     motorDer = new fabric.Circle({
-        radius: 6, fill: 'white', left: rightMotorPosition.x, top: rightMotorPosition.y, hasControls: false, originX: 'center', originY: 'center',
+        radius: 6, fill: 'white', left: rightMotorPositionPixels.x, top: rightMotorPositionPixels.y, hasControls: false, originX: 'center', originY: 'center',
 		lockRotation: true,
 		lockMovementX: true,
 		lockMovementY: true,
@@ -92,7 +106,7 @@ var newPenPositionCircle;
         hasControls: false
     });
     motorIzq = new fabric.Circle({
-        radius: 6, fill: 'white', left: leftMotorPosition.x, top: rightMotorPosition.y, hasControls: false, originX: 'center', originY: 'center',
+        radius: 6, fill: 'white', left: leftMotorPositionPixels.x, top: rightMotorPositionPixels.y, hasControls: false, originX: 'center', originY: 'center',
 		lockRotation: true,
 		lockMovementX: true,
 		lockMovementY: true,
@@ -103,7 +117,6 @@ var newPenPositionCircle;
     });
     canvas.add(motorDer);
     canvas.add(motorIzq);
-
 
 
     gondolaPoint = new fabric.Circle({
@@ -133,7 +146,7 @@ var newPenPositionCircle;
     })
     canvas.add(machineSquare);
 
-	newPenPositionArrow = new fabric.Line([leftMotorPosition.x, leftMotorPosition.y, 0, 0], {
+	newPenPositionArrow = new fabric.Line([leftMotorPositionPixels.x, leftMotorPositionPixels.y, 0, 0], {
         left: 0, top: 0, stroke: 'grey', selectable:false});
 	canvas.add(newPenPositionArrow);
 
@@ -151,8 +164,10 @@ var newPenPositionCircle;
 
 	/* *********** */
 
-    SetMachineDimensionsMM(1200, 800);
-	  SetMachineDimensionsSteps(7500, 6250);
+
+	// SetMachineDimensionsSteps(7500, 6250);
+
+	CheckQueue();
 
 })();
 
@@ -179,12 +194,12 @@ canvas.on('mouse:down', function(opt) {
       this.lastPosY = evt.clientY;
   }else{
       if( isSettingGondolaPos){
-          SetGondolaPosition(mouseX, mouseY);
-		  isSettingGondolaPos = false; // SHould this go here or inside the function SetGondolaPosition ?
+          SetGondolaPositionPixels(mouseX, mouseY);
+		  isSettingGondolaPos = false; // SHould this go here or inside the function SetGondolaPositionPixels ?
 
 	  }else if( isSettingNewPenPosition ){
-		  SetNextPenPosition(mouseX, mouseY);
-		  // isSettingNewPenPosition = false;
+		  SetNextPenPositionPixels(mouseX, mouseY);
+		  isSettingNewPenPosition = false;
 	  }
   }
 });
@@ -192,9 +207,18 @@ canvas.on('mouse:down', function(opt) {
 function SetMachineDimensionsMM(_w, _h){
     machineWidthMM = _w;
     machineHeightMM = _h;
-	rightMotorPosition.x = machineWidthMM * mmToPxFactor;
 
-    motorDer.left = rightMotorPosition.x;
+	machineWidthSteps = machineWidthMM * stepsPerMM;
+	machineHeightMMSteps = machineHeightMM * stepsPerMM;
+
+	pxToStepsFactor = mmToPxFactor * stepsPerMM;
+
+	leftMotorPositionSteps = new Victor(0,0);
+	rightMotorPositionSteps = new Victor(0, machineWidthSteps);
+
+	rightMotorPositionPixels.x = machineWidthMM * mmToPxFactor;
+
+    motorDer.left = rightMotorPositionPixels.x;
     lineaMotorDer.set({'x1': motorDer.left, 'y1': 0})
 
     machineSquare.set({'width': motorDer.left, 'height': machineHeightMM * mmToPxFactor});
@@ -202,28 +226,39 @@ function SetMachineDimensionsMM(_w, _h){
     canvas.renderAll();
 }
 
-function SetMachineDimensionsSteps(_w, _h){
-	machineWidthSteps = _w;
-	machineHeightSteps = _h;
-	pxToStepsFactor = pxToMMFactor * (machineWidthSteps / machineWidthMM );
-}
+// function SetMachineDimensionsSteps(_w, _h){
+// 	machineWidthSteps = _w;
+// 	machineHeightSteps = _h;
+// 	 pxPerStep = pxToMMFactor * stepsPerMM;
+// }
 
-function SetGondolaPosition(_x, _y){
-    gondolaPosition.x = _x;
-    gondolaPosition.y = _y;
+function SetGondolaPositionPixels(_x, _y){
+    gondolaPositionPixels.x = _x;
+    gondolaPositionPixels.y = _y;
     gondolaPoint.left = _x;
     gondolaPoint.top = _y;
 	canvas.renderAll();
-    console.log("New Gondola Position: " + gondolaPosition);
+    console.log("New Gondola Position: " + gondolaPositionPixels);
 
-	let rightMotorDist = gondolaPosition.distance(rightMotorPosition) * pxToStepsFactor;
-	let leftMotorDist = gondolaPosition.distance(leftMotorPosition) * pxToStepsFactor;
+	let leftMotorDist = gondolaPositionPixels.distance(leftMotorPositionPixels) *  pxPerStep;
+	let rightMotorDist = gondolaPositionPixels.distance(rightMotorPositionPixels) *  pxPerStep;
+
 	let cmd = "C09,"+ Math.round(leftMotorDist) +","+ Math.round(rightMotorDist) +",END";
 	SerialSend(cmd);
+	// WriteConsole(cmd);
 	console.log("New Pos: " + cmd);
 }
 
-function SetNextPenPosition(_x, _y){
+function  NativeToCartesian(_left, _right){
+	// Math from original polarcontroller :)  https://github.com/euphy/polargraphcontroller/blob/master/Machine.pde#L339
+ 	let calcX = (Math.pow(machineWidthSteps, 2) - Math.pow(_right, 2) + Math.pow(_left, 2)) / (machineWidthSteps * 2);
+	let calcY = Math.sqrt( Math.pow(_left, 2) - Math.pow(calcX, 2) );
+
+	let pos = new Victor(calcX, calcY);
+	return pos;
+}
+
+function SetNextPenPositionPixels(_x, _y){
 	nextPenPosition.x = _x;
 	nextPenPosition.y = _y;
 	newPenPositionCircle.left = _x;
@@ -232,12 +267,15 @@ function SetNextPenPosition(_x, _y){
 
 	console.log("Next Position: " + nextPenPosition);
 
-	let rightMotorDist = nextPenPosition.distance(rightMotorPosition) * pxToStepsFactor;
-	let leftMotorDist = nextPenPosition.distance(leftMotorPosition) * pxToStepsFactor;
+	let rightMotorDist = nextPenPosition.distance(rightMotorPositionPixels) *  pxPerStep;
+	let leftMotorDist = nextPenPosition.distance(leftMotorPositionPixels) *  pxPerStep;
 	let cmd = "C17,"+ Math.round(leftMotorDist) +","+ Math.round(rightMotorDist) +",2,END";
-	SerialSend(cmd);
+	AddToQueue(cmd);
+	// WriteConsole(cmd);
 	console.log("New Pos: " + cmd);
 }
+
+
 
 var mouseX, mouseY;
 var pointer;
@@ -268,13 +306,13 @@ canvas.on('mouse:move', function(opt) {
   mouseVector.x = mouseX;
   mouseVector.y = mouseY;
 
-  let disToLMotor = mouseVector.distance(leftMotorPosition);
+  let disToLMotor = mouseVector.distance(leftMotorPositionPixels);
   $("#canvasMetaData .lmotomm").html( (disToLMotor * pxToMMFactor).toFixed(1) );
-  $("#canvasMetaData .lmotosteps").html( (disToLMotor * pxToStepsFactor).toFixed(1));
+  $("#canvasMetaData .lmotosteps").html( (disToLMotor *  pxPerStep).toFixed(1));
 
-  let disToRMotor = mouseVector.distance(rightMotorPosition);
+  let disToRMotor = mouseVector.distance(rightMotorPositionPixels);
   $("#canvasMetaData .rmotomm").html( (disToRMotor * pxToMMFactor).toFixed(1) );
-  $("#canvasMetaData .rmotosteps").html( (disToRMotor * pxToStepsFactor).toFixed(1));
+  $("#canvasMetaData .rmotosteps").html( (disToRMotor *  pxPerStep).toFixed(1));
 
 }); // mouse move
 
@@ -285,9 +323,26 @@ canvas.on('mouse:up', function(opt) {
 
 
 canvas.on('path:created', function(e){
-    var your_path = e.path;
-    console.log(your_path);
-    // ... do something with your path
+    var myPath = e.path;
+    // console.log(myPath);
+	let points = myPath.path;
+	for(let i = 0; i <  points.length; i++){
+		if(i == 0){
+			// Es el primer punto
+			AddToQueue("C14,UP,END") // pen lift
+			AddPixelCoordToQueue(points[i][1], points[i][2]);
+			SerialSend("C13,DOWN,END"); // pen down
+
+		}else if(i == points.length-1){
+			// es el ultimo punto
+			AddToQueue("C14,UP,END") // pen lift
+			AddPixelCoordToQueue(points[i][1], points[i][2]);
+
+		}else{
+			// Es un punto normal
+			AddPixelCoordToQueue(points[i][1], points[i][2]);
+		}
+	}
 });
 
 
@@ -310,6 +365,34 @@ $("#pen-lift").click(function(){
 $("#pen-drop").click(function(){
 	SerialSend("C13,DOWN,END");
 })
+
+
+
+$('#tools-free-draw').click(function(){
+	if(canvas.isDrawingMode){
+		canvas.isDrawingMode = false;
+	}else{
+		canvas.isDrawingMode = true;
+	}
+});
+
+
+$('#pause-queue').click(function(){
+	if(isQueueActive){
+		isQueueActive = false;
+		$('#pause-queue').html( '<i class="play icon"></i>Play' );
+	}else{
+		isQueueActive = true;
+		$('#pause-queue').html( '<i class="pause icon"></i>Pause' );
+	}
+});
+
+$('#clear-queue').click(function(){
+	machineQueue = [];
+	$('#queue').html('');
+});
+
+
 
 
 // We are connected and ready to go
@@ -355,9 +438,11 @@ function p(txt){
 var lastReceivedString = "";
 var lastSentCmd = ""; // TODO hacer de esto un array
 
-function SerialSend(d){
-  serial.write(d + '\n');
-  WriteConsole(d)
+function SerialSend(cmd){
+  serial.write(cmd + '\n');
+  statusElement.html(statusWorkingIcon);
+  isMachineReady = false;
+  WriteConsole(cmd)
 }
 
 // There is data available to work with from the serial port
@@ -366,6 +451,84 @@ function gotData() {
   // var currentString = serial.readString();
   // console.log(currentString);
   if(currentString == "") return;
+
+  // Parse response in cases where data is space separated
+  var responseWords = currentString.split(" ");
+  switch(responseWords[0]){
+		case 'READY':
+	  		statusElement.html(statusSuccessIcon);
+			isMachineReady = true;
+	  		break;
+
+		case 'Loaded':
+			if(responseWords[1] == "width"){
+				machineWidthMM = parseInt( responseWords[1].split(":")[1] );
+				$("#inputMachineWidth").val(machineWidthMM);
+
+			}else if(responseWords[1] == "height"){
+				machineHeightMM = parseInt( responseWords[1].split(":")[1] );
+				$("#inputMachineHeigth").val(machineHeightMM);
+
+			}else if(responseWords[1] == "mmPerRev"){
+				mmPerRev = parseInt( responseWords[1].split(":")[1] );
+				$("#inputMmPerRev").val(responseWords);
+
+			}else if(responseWords[1] == "steps" && responseWords[2] == "per" ){
+				mmPerRev = parseInt( responseWords[3].split(":")[1] );
+				$("#inputMmPerRev").val(mmPerRev);
+
+			}else if(responseWords[1] =="step"  && responseWords[2].startsWith("multiplier")){
+				stepMultiplier = parseInt( responseWords[2].split(":")[1] );
+				$("#inputStepMultiplier").val(mmPerRev);
+
+			}else if(responseWords[1] == "down"){
+				downPos = parseInt( responseWords[2].split(":")[1] );
+				$("#inputDownPos").val(downPos);
+
+			}else if(responseWords[1] == "up"){
+				upPos = parseInt( responseWords[2].split(":")[1] );
+				$("#inputUpPos").val(upPos);
+			}
+			break;
+
+		case 'Recalc':
+			if(responseWords[1] == "mmPerStep"){
+				mmPerStep = parseFloat(responseWords[2].slice(0,-2).substring(1))
+				stepsPerMM = parseFloat(responseWords[4].slice(0,-1).substring(1))
+
+				$("#inputMmPerStep").val(mmPerStep);
+				$("#inputStepsPerMM").val(stepsPerMM);
+
+			}else if(responseWords[1] == "pageWidth"){
+				pageWidth = parseInt( responseWords[4].slice(0,-1).substring(1) );
+				$("#inputPageWidthSteps").val(pageWidth);
+
+			}else if(responseWords[1] == "pageHeight"){
+				pageHeight = parseInt( responseWords[4].slice(0,-1).substring(1) );
+				$("#inputPageHeightSteps").val(pageHeight);
+
+				// This is the last received data, so now I recalculate
+				SetMachineDimensionsMM(machineWidthMM, machineHeightMM);
+			}
+		break;
+  }
+
+	// Now check for cases where data is comma separated
+	responseWords = currentString.split(",");
+	switch(responseWords[0]){
+		case "SYNC":
+			syncedLeft = responseWords[1];
+			syncedRight = responseWords[2];
+
+			let gondolaPos = NativeToCartesian(syncedLeft, syncedRight);
+			SetGondolaPositionPixels(gondolaPos.x *  pxPerStep, gondolaPos.y * pxPerStep);
+			// TODO Revisar que pxPerStep este bien!
+		break;
+	}
+
+
+
+  // end parse response
 
   if(currentString == lastReceivedString){
     let lastLog = $(".log:last-child");
@@ -397,7 +560,7 @@ $("document").ready(function(){
       if( msg == "") return;
       msg = msg.toUpperCase();
       SerialSend(msg);
-      WriteConsole(msg, false);
+      // WriteConsole(msg, false);
       $("#consoleInput").val(""); // Vacío el input
       lastSentCmd = msg;
 
@@ -416,8 +579,7 @@ $("document").ready(function(){
     window.onhashchange = function () {
         hashChanged(window.location.hash);
     }
-  }
-  else { // event not supported:
+  } else { // event not supported:
       var storedHash = window.location.hash;
       window.setInterval(function () {
           if (window.location.hash != storedHash) {
@@ -426,12 +588,6 @@ $("document").ready(function(){
           }
       }, 100);
   }
-
-
-
-  $("#content-tools").hide();
-  $("#content-console").hide();
-  $("#content-settings").hide();
 
 
   $('.ui.menu')
@@ -463,9 +619,9 @@ $("document").ready(function(){
 function WriteConsole(txt, received = true){
   let icon, clase = "log";
   if(received){
-     icon = '<i class="caret down icon"></i>';
+     icon = '<i class="caret down icon receivedCmd"></i>';
   }else{
-    icon = '<i class="caret up icon"></i>';
+    icon = '<i class="caret up icon sentCmd"></i>';
   }
   txt = '<span class="content">' + txt + '</span>';
 
@@ -485,6 +641,29 @@ function hashChanged(h){
     currContent = newContent;
   // }
 
+}
+
+function CheckQueue(){
+	// console.log("checking queue");
+	if(isQueueActive && isMachineReady && machineQueue.length > 0){
+		SerialSend( machineQueue.shift() );
+		$('#queue .item').first().remove()
+	}
+	setTimeout(CheckQueue, 800);
+}
+
+function AddToQueue(cmd){
+	$("#queue").append("<div class='item'>"+cmd+"</div><div class='ui divider'></div>");
+	machineQueue.push(cmd);
+}
+
+function AddPixelCoordToQueue(x,y){
+	let pos = new Victor(x *  pxPerStep, y *  pxPerStep);
+	let leftMotorDist = pos.distance(leftMotorPositionSteps);
+	let rightMotorDist = pos.distance(rightMotorPositionSteps);
+
+	let cmd = "C17,"+ Math.round(leftMotorDist) +","+ Math.round(rightMotorDist) +",2,END";
+	AddToQueue(cmd);
 }
 
 
@@ -523,3 +702,12 @@ function resizeCanvas() {
 
   canvas.renderAll();
 }
+
+
+// TODO SVG path points to canvas pixel points
+// http://fabricjs.com/using-transformations
+// get SVG object transformation matrix fabric.Object.prototype.calcTransformMatrix();
+// loop each svg path. loop each path's points.
+// transform each point using the SVG object transfo matrix:
+// fabric.util.transformPoint(point, matrix);
+//

@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
-  <head>
+<head profile="http://www.w3.org/2005/10/profile">
+	<link rel="icon" type="image/png" href="melt-icon.png" />
     <meta charset="UTF-8">
     <title>Melt Polargraph Controller</title>
 
@@ -50,16 +51,14 @@
       <div class="six wide column">
         <div id="" class="dashboardElement">
 
-                <div class="ui secondary pointing four item menu">
-                <a href="#control" class="active item"><i class="gamepad icon"></i></a>
-                <a href="#tools" class="item"><i class="life ring icon"></i></a>
-                <a href="#console" class="item"><i class="terminal icon"></i></a>
+            <div class="ui secondary pointing five item menu">
+	                <a href="#control" class="active item"><i class="gamepad icon"></i></a>
+	                <a href="#tools" class="item"><i class="idea icon"></i></a>
+	                <a href="#console" class="item"><i class="terminal icon"></i></a>
+					<a href="#queue" class="item"><i class="rocket icon"></i></a>
+					<a  href="#settings" class="ui item"><i class="settings icon"></i></a>
 
-                  <a  href="#settings" class="ui item">
-                    <i class="settings icon"></i>
-                  </a>
-
-              </div>
+            </div>
 
 
               <div class="dashboardMenuContent">
@@ -101,7 +100,12 @@
 
                 <!-- TOOLS -->
                 <div id="content-tools">
-                  tools
+					<div class="ui fluid vertical labeled icon buttons">
+						<button class="ui button" id="tools-free-draw">
+	  						<i class="paint brush icon"></i>Free Drawing
+	  				  	</button>
+
+					</div>
                 </div>
 
 
@@ -116,62 +120,89 @@
 
 
 
+
+				<!-- QUEUE -->
+                <div id="content-queue">
+                  <div id="queue"></div>
+
+				  <a id="pause-queue" class="ui labeled icon button"><i class="pause icon"></i>Pause</a>
+
+				  <a id="clear-queue" class="ui labeled icon button"><i class="trash icon"></i>Clear</a>
+                </div>
+
+
+
               <!-- SETTINGS -->
               <div id="content-settings">
 
 
                 <div class="ui fluid right labeled input mypopup"  data-html="<div class='header'>Set Machine Size</div><div class='content'><pre>C24,[width],[height],END</pre>Sets the machine's dimensions in millimetres.</div>">
                   <div class="ui basic label">Machine Width (mm)</div>
-                  <input type="number" placeholder="1200" id="amount">
+                  <input type="number" placeholder="1200" id="inputMachineWidth">
                 </div>
 
                 <div class="ui fluid right labeled input">
                   <div class="ui basic label">Machine Height (mm)</div>
-                  <input type="number" placeholder="800" id="amount">
-                </div>
-
-                <div class="ui fluid right labeled input">
-                  <div class="ui basic label">Machine Width (mm)</div>
-                  <input type="number" placeholder="1200" id="amount">
+                  <input type="number" placeholder="800"  id="inputMachineHeight">
                 </div>
 
                 <div class="ui fluid right labeled input">
                   <div class="ui basic label">mm per Rev</div>
-                  <input type="number" placeholder="32" id="amount">
+                  <input type="number" placeholder="32" id="inputMmPerRev">
 
                 </div>
 
                 <div class="ui fluid right labeled input">
                   <div class="ui basic label">Steps per Rev</div>
-                  <input type="number" placeholder="800" id="amount">
+                  <input type="number" placeholder="800" id="inputStepsPerRev">
 
                 </div>
 
                 <div class="ui fluid right labeled input">
                   <div class="ui basic label">Step Multiplier</div>
-                  <input type="number" placeholder="16" id="amount">
+                  <input type="number" placeholder="16" id="inputStepMultiplier">
+                </div>
+
+				<div class="ui fluid right labeled input">
+                  <div class="ui basic label">Pen Down Position</div>
+                  <input type="number" placeholder="90" id="inputDownPos">
+                </div>
+
+				<div class="ui fluid right labeled input">
+                  <div class="ui basic label">Pen Up Position</div>
+                  <input type="number" placeholder="180" id="inputUpPos">
                 </div>
 
                 <div class="ui fluid right labeled input">
                   <div class="ui basic label">Max Speed</div>
-                  <input type="number" placeholder="200" id="amount">
+                  <input type="number" placeholder="200" id="inputMaxSpeed">
                 </div>
 
                 <div class="ui fluid right labeled input">
                   <div class="ui basic label">Acceleration</div>
-                  <input type="number" placeholder="400" id="amount">
+                  <input type="number" placeholder="400" id="inputAcceleration">
+                </div>
+
+				<div class="ui fluid right labeled input disabled">
+                  <div class="ui basic label">MM per Step</div>
+                  <input type="number" placeholder="0.16" id="inputMmPerStep">
+                </div>
+
+				<div class="ui fluid right labeled input disabled">
+                  <div class="ui basic label">Steps Per MM</div>
+                  <input type="number" placeholder="6.25" id="inputStepsPerMM">
                 </div>
 
                 <div class="ui divider"></div>
 
                 <div class="ui fluid right labeled input">
-                  <div class="ui basic label">Page Width (mm)</div>
-                  <input type="number" placeholder="200" id="amount">
+                  <div class="ui basic label">Page Width (steps)</div>
+                  <input type="number" placeholder="200"  id="inputPageWidthSteps">
                 </div>
 
                 <div class="ui fluid right labeled input">
-                  <div class="ui basic label">Page Height (mm)</div>
-                  <input type="number" placeholder="400" id="amount">
+                  <div class="ui basic label">Page Height (steps)</div>
+                  <input type="number" placeholder="400" id="inputPageHeightSteps">
                 </div>
 
                 <div class="ui divider"></div>
