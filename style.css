@@ -55,6 +55,7 @@ h2 .content, .ui.header .sub.header{
   -webkit-box-sizing: border-box; /* Safari/Chrome, other WebKit */
   -moz-box-sizing: border-box;    /* Firefox, other Gecko */
   box-sizing: border-box;         /* Opera/IE 8+ */
+  border-radius: 5px;
 }
 #consoleInput:focus {
 
@@ -139,11 +140,14 @@ h2 .content, .ui.header .sub.header{
 .status{
   left: 0px;
   position: absolute;
-  bottom: 0px;
+  bottom: 5px;
   right: 25px;
   text-align: right;
 }
 
+#statusAlert i{
+	width: 15px;
+}
 
 .statusok {
   color: #A4BD8C;
@@ -154,9 +158,8 @@ h2 .content, .ui.header .sub.header{
 .statuserror{
   color: #BF6169
 }
-canvas:hover{
-  cursor: copy;
-}
+
+
 #canvasSizer{
     width: 100%;
     height: 100%;
@@ -182,4 +185,17 @@ canvas:hover{
 }
 .ui.dimmer{
   background-color: #3a4251ed
+}
+
+
+#ws-alert{
+	padding: 10px;
+	display: none;
+}
+#ws-alert a{
+	color: #565656;
+	font-weight:600;
+}
+#ws-alert a:hover{
+	text-decoration:underline;
 }

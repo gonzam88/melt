@@ -1,6 +1,11 @@
+
+
+
 /*
 	https://github.com/euphy/polargraph/wiki/Polargraph-machine-commands-and-responses
 */
+
+
 
 var serial; // variable to hold an instance of the serialport library
 var portName = '/dev/cu.usbmodem641'; // fill in your serial port name here
@@ -11,6 +16,7 @@ var output = 0;
 var serialOptions = {
   baudrate: 57600
 };
+var wsConnected = false;
 
 //var machineWidthRevs = 1500; machineHeightRevs = 1200;
 var machineWidthSteps, machineHeightSteps;
@@ -41,13 +47,13 @@ var statusSuccessIcon = '<i class="statusok small check circle icon"></i>';
 var statusWorkingIcon = '<i class="statusworking notched circle loading icon"></i>';
 var statusElement = $("#statusAlert");
 
-var canvas,lineaMotorDer, lineaMotorIzq, motorDer, motorIzq, machineSquare;
+var canvas,motorLineRight, motorLineLeft, motorRightCircle, motorLeftCircle, machineSquare;
 var mouseVector = new Victor(0,0);
 var isSettingGondolaPos = false;
 var isSettingNewPenPosition = false;
 var gondolaPositionPixels = new Victor(0,0);
 var nextPenPosition = new Victor(0,0);
-var gondolaPoint;
+var gondolaCircle;
 
 var leftMotorPositionPixels = new Victor(0,0);
 var rightMotorPositionPixels = new Victor(0,0);
@@ -57,6 +63,12 @@ var newPenPositionArrow;
 var newPenPositionCircle;
 
 (function(){
+	if( window.location.hash != ""){
+		window.location.href = location.href.replace(location.hash,"") ;
+	}
+
+
+
 	// SERIAL Start
     // Instantiate our SerialPort object
     serial = new p5.SerialPort();
@@ -78,25 +90,25 @@ var newPenPositionCircle;
     serial.on('open', gotOpen);
 
     canvas = new fabric.Canvas('myCanvas');
-	  canvas.freeDrawingBrush.color = "purple";
+	canvas.freeDrawingBrush.color = "purple";
     canvas.freeDrawingBrush.width = .5;
-	  canvas.isDrawingMode = false;
+	canvas.isDrawingMode = false;
 
     window.addEventListener('resize', resizeCanvas, false);
     // resize on init
 
 
-
-    lineaMotorDer = new fabric.Line([rightMotorPositionPixels.x, rightMotorPositionPixels.y, 0, 0], {
+	// Define some fabric.js elements
+    motorLineRight = new fabric.Line([rightMotorPositionPixels.x, rightMotorPositionPixels.y, 0, 0], {
         left: 0, top: 0, stroke: 'grey', selectable:false
     });
-    lineaMotorIzq = new fabric.Line([leftMotorPositionPixels.x, leftMotorPositionPixels.y, 0, 0], {
+    motorLineLeft = new fabric.Line([leftMotorPositionPixels.x, leftMotorPositionPixels.y, 0, 0], {
         left: 0, top: 0, stroke: 'grey', selectable:false
     });
-    canvas.add(lineaMotorDer);
-    canvas.add(lineaMotorIzq);
+    canvas.add(motorLineRight);
+    canvas.add(motorLineLeft);
 
-    motorDer = new fabric.Circle({
+    motorRightCircle = new fabric.Circle({
         radius: 6, fill: 'white', left: rightMotorPositionPixels.x, top: rightMotorPositionPixels.y, hasControls: false, originX: 'center', originY: 'center',
 		lockRotation: true,
 		lockMovementX: true,
@@ -106,7 +118,7 @@ var newPenPositionCircle;
 		lockUniScaling: true,
         hasControls: false
     });
-    motorIzq = new fabric.Circle({
+    motorLeftCircle = new fabric.Circle({
         radius: 6, fill: 'white', left: leftMotorPositionPixels.x, top: rightMotorPositionPixels.y, hasControls: false, originX: 'center', originY: 'center',
 		lockRotation: true,
 		lockMovementX: true,
@@ -116,11 +128,11 @@ var newPenPositionCircle;
 		lockUniScaling: true,
         hasControls: false
     });
-    canvas.add(motorDer);
-    canvas.add(motorIzq);
+    canvas.add(motorRightCircle);
+    canvas.add(motorLeftCircle);
 
 
-    gondolaPoint = new fabric.Circle({
+    gondolaCircle = new fabric.Circle({
         radius: 3, fill: '#a4bd8e', left: 0, top: 0, hasControls: false, originX: 'center', originY: 'center',
 		lockRotation: true,
 		lockMovementX: true,
@@ -130,7 +142,7 @@ var newPenPositionCircle;
 		lockUniScaling: true,
         hasControls: false
     });
-    canvas.add(gondolaPoint);
+    canvas.add(gondolaCircle);
 
     machineSquare = new fabric.Rect({
         width: 0, height: 0,
@@ -164,8 +176,12 @@ var newPenPositionCircle;
 	canvas.add(newPenPositionCircle);
 
 	/* *********** */
+<<<<<<< HEAD
   resizeCanvas();
   DrawGrid();
+=======
+	setTimeout(CheckWsConnection, 1000); // 1 second after we start, we check wether a connection has been established to WebSocket. otherwise we show an alert
+>>>>>>> 18620a65d438c5272f4ed1344bcd5c07226977df
 	CheckQueue();
 
 })();
@@ -212,8 +228,8 @@ canvas.on('mouse:down', function(opt) {
 });
 
 function SetMachineDimensionsMM(_w, _h){
-  machineWidthMM = _w;
-  machineHeightMM = _h;
+	machineWidthMM = _w;
+	machineHeightMM = _h;
 
 	machineWidthSteps = machineWidthMM * stepsPerMM;
 	machineHeightMMSteps = machineHeightMM * stepsPerMM;
@@ -223,52 +239,47 @@ function SetMachineDimensionsMM(_w, _h){
 
 	rightMotorPositionPixels.x = machineWidthMM * mmToPxFactor;
 
-  motorDer.left = rightMotorPositionPixels.x;
-  lineaMotorDer.set({'x1': motorDer.left, 'y1': 0})
+	motorRightCircle.left = rightMotorPositionPixels.x;
+	motorLineRight.set({'x1': motorRightCircle.left, 'y1': 0})
 
-  machineSquare.set({'width': motorDer.left, 'height': machineHeightMM * mmToPxFactor});
-  canvas.renderAll();
+	machineSquare.set({'width': motorRightCircle.left, 'height': machineHeightMM * mmToPxFactor});
+	canvas.renderAll();
 
 	pxPerStep = machineWidthSteps / rightMotorPositionPixels.x;
+<<<<<<< HEAD
   stepPerPx = rightMotorPositionPixels.x / machineWidthSteps;
 
   CenterWorkspace();
+=======
+	stepPerPx = rightMotorPositionPixels.x / machineWidthSteps;
+>>>>>>> 18620a65d438c5272f4ed1344bcd5c07226977df
 }
 
-// function SetMachineDimensionsSteps(_w, _h){
-// 	machineWidthSteps = _w;
-// 	machineHeightSteps = _h;
-// 	 pxPerStep = pxToMMFactor * stepsPerMM;
-// }
-
 function SetGondolaPositionPixels(_x, _y){
-  gondolaPositionPixels.x = _x;
-  gondolaPositionPixels.y = _y;
-  gondolaPoint.left = _x;
-  gondolaPoint.top = _y;
-  UpdatePositionMetadata(gondolaPositionPixels);
-  // console.log("New Gondola Position: " + gondolaPositionPixels);
+	gondolaPositionPixels.x = _x;
+	gondolaPositionPixels.y = _y;
+	gondolaCircle.left = _x;
+	gondolaCircle.top = _y;
+	UpdatePositionMetadata(gondolaPositionPixels);
 
 	let leftMotorDist = gondolaPositionPixels.distance(leftMotorPositionPixels) *  pxPerStep;
 	let rightMotorDist = gondolaPositionPixels.distance(rightMotorPositionPixels) *  pxPerStep;
 
 	let cmd = "C09,"+ Math.round(leftMotorDist) +","+ Math.round(rightMotorDist) +",END";
 	SerialSend(cmd);
-	// WriteConsole(cmd);
 	console.log("New Pos: " + cmd);
 }
 
 function SyncGondolaPosition(_x, _y){
-  gondolaPositionPixels.x = _x;
-  gondolaPositionPixels.y = _y;
-  gondolaPoint.left = _x;
-  gondolaPoint.top = _y;
-  UpdatePositionMetadata(gondolaPositionPixels);
-  // console.log("New Gondola Position: " + gondolaPositionPixels);
+	gondolaPositionPixels.x = _x;
+	gondolaPositionPixels.y = _y;
+	gondolaCircle.left = _x;
+	gondolaCircle.top = _y;
+	UpdatePositionMetadata(gondolaPositionPixels);
 }
 
 function  NativeToCartesian(_left, _right){
-	// Math from original polarcontroller :)  https://github.com/euphy/polargraphcontroller/blob/master/Machine.pde#L339
+	// Math borrowed from original polarcontroller :)  https://github.com/euphy/polargraphcontroller/blob/master/Machine.pde#L339
  	let calcX = (Math.pow(machineWidthSteps, 2) - Math.pow(_right, 2) + Math.pow(_left, 2)) / (machineWidthSteps * 2);
 	let calcY = Math.sqrt( Math.pow(_left, 2) - Math.pow(calcX, 2) );
 
@@ -296,21 +307,20 @@ function SetNextPenPositionPixels(_x, _y){
 
 canvas.on('mouse:move', function(opt) {
 
-  if (this.isDragging) {
-    var e = opt.e;
-    this.viewportTransform[4] += e.clientX - this.lastPosX;
-    this.viewportTransform[5] += e.clientY - this.lastPosY;
-    this.requestRenderAll();
-    this.lastPosX = e.clientX;
-    this.lastPosY = e.clientY;
-  }
+	if (this.isDragging) {
+		var e = opt.e;
+		this.viewportTransform[4] += e.clientX - this.lastPosX;
+		this.viewportTransform[5] += e.clientY - this.lastPosY;
+		this.requestRenderAll();
+		this.lastPosX = e.clientX;
+		this.lastPosY = e.clientY;
+	}
 
-  let pointer = canvas.getPointer(options.e);
-  mouseVector.x = pointer.x;
-  mouseVector.y = pointer.y;
+	let pointer = canvas.getPointer(options.e);
+	mouseVector.x = pointer.x;
+	mouseVector.y = pointer.y;
 
-  UpdatePositionMetadata(mouseVector);
-
+	UpdatePositionMetadata(mouseVector);
 }); // mouse move
 
 canvas.on('mouse:up', function(opt) {
@@ -335,8 +345,8 @@ $( "canvas" ).hover(
 
 function UpdatePositionMetadata(vec){
   // Linea Motor
-  lineaMotorDer.set({'x2': vec.x, 'y2': vec.y });
-  lineaMotorIzq.set({'x2': vec.x, 'y2': vec.y});
+  motorLineRight.set({'x2': vec.x, 'y2': vec.y });
+  motorLineLeft.set({'x2': vec.x, 'y2': vec.y});
 
   $("#canvasMetaData .x").html( Math.round(vec.x) );
   $("#canvasMetaData .y").html( Math.round(vec.y) );
@@ -371,7 +381,7 @@ canvas.on('path:created', function(e){
 		}else if(i == points.length-1){
 			// es el ultimo punto
 			AddPixelCoordToQueue(points[i][2], points[i][1]);
-      AddToQueue("C14,UP,END") // pen lift
+      		AddToQueue("C14,UP,END") // pen lift
 		}else{
 			// Es un punto normal
 			AddPixelCoordToQueue(points[i][2], points[i][1]);
@@ -434,6 +444,13 @@ $('#clear-queue').click(function(){
 // We are connected and ready to go
 function serverConnected() {
     console.log("We are connected!");
+	wsConnected = true;
+	$("#ws-alert").hide();
+}
+function CheckWsConnection(){
+	if(!wsConnected){
+		$("#ws-alert").slideDown();
+	}
 }
 
 // Got the list of ports
@@ -461,9 +478,8 @@ function gotOpen() {
 
 // Ut oh, here is an error, let's log it
 function gotError(theerror) {
-  console.log(theerror);
-  statusElement.html(statusErrorIcon);
-  WriteConsole(theerror);
+	console.log(theerror);
+	statusElement.html(statusErrorIcon);
 }
 
 
@@ -677,7 +693,7 @@ $("document").ready(function(){
       $("#connected_to").html(portName);
     })
 
-    $("#serial_reconnect").click(function(){
+    $(".serial_reconnect").click(function(){
 
       gotList(serial.list());
     })
@@ -746,7 +762,23 @@ function AddPixelCoordToQueue(x,y){
 	AddToQueue(cmd);
 }
 
+<<<<<<< HEAD
 function DrawGrid(){
+=======
+function AddMMCoordToQueue(x,y){
+	let pos = new Victor(x *  mmPerStep, y *  mmPerStep);
+	let leftMotorDist = pos.distance(leftMotorPositionSteps);
+	let rightMotorDist = pos.distance(rightMotorPositionSteps);
+
+	let cmd = "C17,"+ Math.round(leftMotorDist) +","+ Math.round(rightMotorDist) +",2,END";
+	AddToQueue(cmd);
+}
+
+
+function resizeCanvas() {
+  canvas.setHeight( $('#canvasSizer').height() );
+  canvas.setWidth(  $('#canvasSizer').width() );
+>>>>>>> 18620a65d438c5272f4ed1344bcd5c07226977df
   /*
   * Grid
   */
@@ -798,10 +830,77 @@ function resizeCanvas() {
 }
 
 
-// TODO SVG path points to canvas pixel points
-// http://fabricjs.com/using-transformations
-// get SVG object transformation matrix fabric.Object.prototype.calcTransformMatrix();
-// loop each svg path. loop each path's points.
-// transform each point using the SVG object transfo matrix:
-// fabric.util.transformPoint(point, matrix);
-//
+function map(x, in_min, in_max, out_min, out_max)
+{
+  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}
+
+const Polargraph = class{
+	// TODO Put plotter functions here
+}
+
+const Melt = class{
+	// Drawing Functions
+	//
+	// They try to mimic the p5.js reference
+	//
+	constructor(){
+		this.isDrawingPath = false;
+		// if set to true it wont move the pen up and down after each shape
+	}
+	BeginShape(){
+		this.isDrawingPath = true;
+	}
+	EndShape(){
+		this.isDrawingPath = false;
+	}
+	PenUp(){
+		AddToQueue("C14,UP,END") // pen lift
+	}
+	PenDown(){
+		AddToQueue("C13,DOWN,END"); // pen down
+	}
+
+	line(x1, y1, x2, y2){
+		/// <summary>Draws a line from (x1, y1) to (x2, y2). Positions should be set in millimetres. Warning! If called between StartPath() and EndPath(), pen will not be raised when moving to starting coordinate</summary>
+		if( !this.isDrawingPath ){
+			this.PenUp();
+		}
+
+		AddMMCoordToQueue(x1,y1);
+
+		if( !this.isDrawingPath ){
+			this.PenDown();
+		}
+
+		AddMMCoordToQueue(x2,y2);
+
+		if( !this.isDrawingPath ){
+			this.PenDown();
+		}
+	}
+
+
+	ellipse(x, y, r, res = 100){
+		// First I generete an array of points that create the circle
+		this.circleVectors = [];
+	    for (let i = 0; i < res; i++) {
+	        let angle = map(i, 0, res, 0, 2 * Math.PI);
+	        let posX = (r * Math.cos(angle) + x);
+	        let posY = (r * Math.sin(angle) + y);
+			this.temp = new Victor(posX, posY);
+	        this.circleVectors.push(this.temp);
+	    }
+
+		this.PenUp();
+
+		for(let i = 0; i < this.circleVectors.length; i++){
+			AddMMCoordToQueue(this.circleVectors[i].x, this.circleVectors[i].y);
+		}
+
+		this.PenDown();
+	}
+}
+
+
+const melt = new Melt();
