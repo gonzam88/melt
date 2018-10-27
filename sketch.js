@@ -1,12 +1,6 @@
-
-
-
 /*
 	https://github.com/euphy/polargraph/wiki/Polargraph-machine-commands-and-responses
 */
-
-
-
 var serial; // variable to hold an instance of the serialport library
 var portName = '/dev/cu.usbmodem641'; // fill in your serial port name here
 var inData; // for incoming serial data
@@ -47,7 +41,8 @@ var statusSuccessIcon = '<i class="statusok small check circle icon"></i>';
 var statusWorkingIcon = '<i class="statusworking notched circle loading icon"></i>';
 var statusElement = $("#statusAlert");
 
-var canvas,motorLineRight, motorLineLeft, motorRightCircle, motorLeftCircle, machineSquare;
+var canvas;
+var motorLineRight, motorLineLeft, motorRightCircle, motorLeftCircle, machineSquare;
 var mouseVector = new Victor(0,0);
 var isSettingGondolaPos = false;
 var isSettingNewPenPosition = false;
@@ -57,162 +52,337 @@ var gondolaCircle;
 
 var leftMotorPositionPixels = new Victor(0,0);
 var rightMotorPositionPixels = new Victor(0,0);
+var newPenPositionArrow, newPenPositionCircle;
 
-var newPenPositionArrow;
+var melt;
 
-var newPenPositionCircle;
-
-(function(){
-	if( window.location.hash != ""){
+$("document").ready(function(){
+  if( window.location.hash != ""){
 		window.location.href = location.href.replace(location.hash,"") ;
-	}
+	}else{
+    MeltInit();
+    FabricInit();
+    UiInit();
+
+  }
 
 
 
-	// SERIAL Start
-    // Instantiate our SerialPort object
+
+}); // doc ready
+
+function MeltInit(){
+    // SERIAL Start
     serial = new p5.SerialPort();
     // Let's list the ports available
     var portlist = serial.list();
-    // Assuming our Arduino is connected, let's open the connection to it
-    // Change this to the name of your arduino's serial port
-    // serial.open(portName, serialOptions);
-    // Register some callbacks
-    // When we connect to the underlying server
     serial.on('connected', serverConnected);
-    // When we get a list of serial ports that are available
     serial.on('list', gotList);
-    // When we some data from the serial port
     serial.on('data', gotData);
-    // When or if we get an error
     serial.on('error', gotError);
-    // When our serial port is opened and ready for read/write
     serial.on('open', gotOpen);
 
-    canvas = new fabric.Canvas('myCanvas');
-	canvas.freeDrawingBrush.color = "purple";
-    canvas.freeDrawingBrush.width = .5;
-	canvas.isDrawingMode = false;
+    setTimeout(CheckWsConnection, 1000); // 1 second after we start, we check wether a connection has been established to WebSocket. otherwise we show an alert
+    CheckQueue();
 
-    window.addEventListener('resize', resizeCanvas, false);
-    // resize on init
-    resizeCanvas();
+    // Define the Melt Object
+    melt = new Melt();
+} // Melt Init
 
-	// Define some fabric.js elements
-    motorLineRight = new fabric.Line([rightMotorPositionPixels.x, rightMotorPositionPixels.y, 0, 0], {
-        left: 0, top: 0, stroke: 'grey', selectable:false
-    });
-    motorLineLeft = new fabric.Line([leftMotorPositionPixels.x, leftMotorPositionPixels.y, 0, 0], {
-        left: 0, top: 0, stroke: 'grey', selectable:false
-    });
-    canvas.add(motorLineRight);
-    canvas.add(motorLineLeft);
+function FabricInit(){
+  canvas = new fabric.Canvas('myCanvas');
+  canvas.freeDrawingBrush.color = "purple";
+  canvas.freeDrawingBrush.width = .5;
+  canvas.isDrawingMode = false;
 
-    motorRightCircle = new fabric.Circle({
-        radius: 6, fill: 'white', left: rightMotorPositionPixels.x, top: rightMotorPositionPixels.y, hasControls: false, originX: 'center', originY: 'center',
-		lockRotation: true,
-		lockMovementX: true,
-		lockMovementY: true,
-		lockScalingX: true,
-		lockScalingY: true,
-		lockUniScaling: true,
-        hasControls: false
-    });
-    motorLeftCircle = new fabric.Circle({
-        radius: 6, fill: 'white', left: leftMotorPositionPixels.x, top: rightMotorPositionPixels.y, hasControls: false, originX: 'center', originY: 'center',
-		lockRotation: true,
-		lockMovementX: true,
-		lockMovementY: true,
-		lockScalingX: true,
-		lockScalingY: true,
-		lockUniScaling: true,
-        hasControls: false
-    });
-    canvas.add(motorRightCircle);
-    canvas.add(motorLeftCircle);
+  window.addEventListener('resize', resizeCanvas, false);
+  // resize on init
+  resizeCanvas();
+  DrawGrid();
+
+  // Define some fabric.js elements
+  motorLineRight = new fabric.Line([rightMotorPositionPixels.x, rightMotorPositionPixels.y, 0, 0], {
+      left: 0, top: 0, stroke: 'grey', selectable:false
+  });
+  motorLineLeft = new fabric.Line([leftMotorPositionPixels.x, leftMotorPositionPixels.y, 0, 0], {
+      left: 0, top: 0, stroke: 'grey', selectable:false
+  });
+  canvas.add(motorLineRight);
+  canvas.add(motorLineLeft);
+
+  motorRightCircle = new fabric.Circle({
+      radius: 6, fill: 'white', left: rightMotorPositionPixels.x, top: rightMotorPositionPixels.y, hasControls: false, originX: 'center', originY: 'center',
+  lockRotation: true,
+  lockMovementX: true,
+  lockMovementY: true,
+  lockScalingX: true,
+  lockScalingY: true,
+  lockUniScaling: true,
+      hasControls: false
+  });
+  motorLeftCircle = new fabric.Circle({
+      radius: 6, fill: 'white', left: leftMotorPositionPixels.x, top: rightMotorPositionPixels.y, hasControls: false, originX: 'center', originY: 'center',
+  lockRotation: true,
+  lockMovementX: true,
+  lockMovementY: true,
+  lockScalingX: true,
+  lockScalingY: true,
+  lockUniScaling: true,
+      hasControls: false
+  });
+  canvas.add(motorRightCircle);
+  canvas.add(motorLeftCircle);
 
 
-    gondolaCircle = new fabric.Circle({
-        radius: 3, fill: '#a4bd8e', left: 0, top: 0, hasControls: false, originX: 'center', originY: 'center',
-		lockRotation: true,
-		lockMovementX: true,
-		lockMovementY: true,
-		lockScalingX: true,
-		lockScalingY: true,
-		lockUniScaling: true,
-        hasControls: false
-    });
-    canvas.add(gondolaCircle);
+  gondolaCircle = new fabric.Circle({
+      radius: 3, fill: '#a4bd8e', left: 0, top: 0, hasControls: false, originX: 'center', originY: 'center',
+  lockRotation: true,
+  lockMovementX: true,
+  lockMovementY: true,
+  lockScalingX: true,
+  lockScalingY: true,
+  lockUniScaling: true,
+      hasControls: false
+  });
+  canvas.add(gondolaCircle);
 
-    machineSquare = new fabric.Rect({
-        width: 0, height: 0,
-        left: 0, top: 0,
-        fill: 'rgba(0,0,0,0)',
-        stroke: "white",
-		lockRotation: true,
-		lockMovementX: true,
-		lockMovementY: true,
-		lockScalingX: true,
-		lockScalingY: true,
-		lockUniScaling: true,
-        hasControls: false
-    })
-    canvas.add(machineSquare);
+  machineSquare = new fabric.Rect({
+      width: 0, height: 0,
+      left: 0, top: 0,
+      fill: 'rgba(0,0,0,0)',
+      stroke: "white",
+  lockRotation: true,
+  lockMovementX: true,
+  lockMovementY: true,
+  lockScalingX: true,
+  lockScalingY: true,
+  lockUniScaling: true,
+      hasControls: false
+  })
+  canvas.add(machineSquare);
 
-	newPenPositionArrow = new fabric.Line([leftMotorPositionPixels.x, leftMotorPositionPixels.y, 0, 0], {
-        left: 0, top: 0, stroke: 'grey', selectable:false});
-	canvas.add(newPenPositionArrow);
+  newPenPositionArrow = new fabric.Line([leftMotorPositionPixels.x, leftMotorPositionPixels.y, 0, 0], {
+      left: 0, top: 0, stroke: 'grey', selectable:false});
+  canvas.add(newPenPositionArrow);
 
-	newPenPositionCircle = new fabric.Circle({
-		   radius: 3, fill: '#B38FAC', left: 0, top: 0, hasControls: false, originX: 'center', originY: 'center',
-		   lockRotation: true,
-		   lockMovementX: true,
-		   lockMovementY: true,
-		   lockScalingX: true,
-		   lockScalingY: true,
-		   lockUniScaling: true,
-		   hasControls: false
-	});
-	canvas.add(newPenPositionCircle);
+  newPenPositionCircle = new fabric.Circle({
+     radius: 3, fill: '#B38FAC', left: 0, top: 0, hasControls: false, originX: 'center', originY: 'center',
+     lockRotation: true,
+     lockMovementX: true,
+     lockMovementY: true,
+     lockScalingX: true,
+     lockScalingY: true,
+     lockUniScaling: true,
+     hasControls: false
+  });
+  canvas.add(newPenPositionCircle);
 
-	/* *********** */
-	setTimeout(CheckWsConnection, 1000); // 1 second after we start, we check wether a connection has been established to WebSocket. otherwise we show an alert
-	CheckQueue();
+  // Mousewheel Zoom
+  canvas.on('mouse:wheel', function(opt) {
+    var delta = opt.e.deltaY;
+    let pointer = canvas.getPointer(opt.e);
+    var zoom = canvas.getZoom();
+    zoom = zoom + delta/200;
+    if (zoom > 10) zoom = 10;
+    if (zoom < 0.6) zoom = 0.6;
+    canvas.zoomToPoint({ x: opt.e.offsetX, y: opt.e.offsetY }, zoom);
+    opt.e.preventDefault();
+    opt.e.stopPropagation();
+  });
 
-})();
+  // Pan
+  canvas.on('mouse:down', function(opt) {
+    var evt = opt.e;
+    if (evt.altKey === true || opt.which == 2) {
+        this.isDragging = true;
+        this.selection = false;
+        this.lastPosX = evt.clientX;
+        this.lastPosY = evt.clientY;
+    }else{
+        if( isSettingGondolaPos){
+        SetGondolaPositionPixels(mouseVector.x, mouseVector.y);
+  		  isSettingGondolaPos = false; // SHould this go here or inside the function SetGondolaPositionPixels ?
 
-// Mousewheel Zoom
-canvas.on('mouse:wheel', function(opt) {
-  var delta = opt.e.deltaY;
-  let pointer = canvas.getPointer(opt.e);
-  var zoom = canvas.getZoom();
-  zoom = zoom + delta/200;
-  if (zoom > 10) zoom = 10;
-  if (zoom < 0.6) zoom = 0.6;
-  canvas.zoomToPoint({ x: opt.e.offsetX, y: opt.e.offsetY }, zoom);
-  opt.e.preventDefault();
-  opt.e.stopPropagation();
-});
+  	  }else if( isSettingNewPenPosition ){
+  		  SetNextPenPositionPixels(mouseVector.x, mouseVector.y);
+  		  isSettingNewPenPosition = false;
+  	  }
+    }
+  });
 
-// Pan
-canvas.on('mouse:down', function(opt) {
-  var evt = opt.e;
-  if (evt.altKey === true || opt.which == 2) {
-      this.isDragging = true;
-      this.selection = false;
-      this.lastPosX = evt.clientX;
-      this.lastPosY = evt.clientY;
-  }else{
-      if( isSettingGondolaPos){
-      SetGondolaPositionPixels(mouseVector.x, mouseVector.y);
-		  isSettingGondolaPos = false; // SHould this go here or inside the function SetGondolaPositionPixels ?
+  // canvas mouse move
+  canvas.on('mouse:move', function(opt) {
+  	if (this.isDragging) {
+  		var e = opt.e;
+  		this.viewportTransform[4] += e.clientX - this.lastPosX;
+  		this.viewportTransform[5] += e.clientY - this.lastPosY;
+  		this.requestRenderAll();
+  		this.lastPosX = e.clientX;
+  		this.lastPosY = e.clientY;
+  	}
 
-	  }else if( isSettingNewPenPosition ){
-		  SetNextPenPositionPixels(mouseVector.x, mouseVector.y);
-		  isSettingNewPenPosition = false;
-	  }
+  	let pointer = canvas.getPointer(options.e);
+  	mouseVector.x = pointer.x;
+  	mouseVector.y = pointer.y;
+
+  	UpdatePositionMetadata(mouseVector);
+  }); // mouse move
+
+  canvas.on('mouse:up', function(opt) {
+    this.isDragging = false;
+    this.selection = true;
+  });
+
+  var isMouseOverCanvas;
+  $( "canvas" ).hover(
+    function() {
+      isMouseOverCanvas = true;
+    }, function() {
+      isMouseOverCanvas = false;
+      UpdatePositionMetadata(gondolaPositionPixels);
+    }
+  );
+
+  canvas.on('path:created', function(e){
+    canvas.isDrawingMode = false;
+    var myPath = e.path;
+      // console.log(myPath);
+  	let points = myPath.path;
+
+  	for(let i = 0; i <  points.length; i++){
+  		if(i == 0){
+  			// Es el primer punto
+  			AddToQueue("C14,UP,END") // pen lift
+  			AddPixelCoordToQueue(points[i][2], points[i][1]);
+  			AddToQueue("C13,DOWN,END"); // pen down
+
+  		}else if(i == points.length-1){
+  			// es el ultimo punto
+  			AddPixelCoordToQueue(points[i][2], points[i][1]);
+        		AddToQueue("C14,UP,END") // pen lift
+  		}else{
+  			// Es un punto normal
+  			AddPixelCoordToQueue(points[i][2], points[i][1]);
+  		}
+  	}
+  });
+
+} // fabric init
+
+function UiInit(){
+  // Input console
+  $("#consoleInput").keyup(function(e){
+    let code = e.which; // recommended to use e.which, it's normalized across browsers
+    if(code==13||code==176){
+      // 13 es el Enter comun. 176 es el enter del keypad
+      e.preventDefault();
+      let msg = $("#consoleInput").val();
+      if( msg == "") return;
+      msg = msg.toUpperCase();
+      SerialSend(msg);
+      // WriteConsole(msg, false);
+      $("#consoleInput").val(""); // Vacío el input
+      lastSentCmd = msg;
+
+    }else if (code==38||code==104) {
+      // Up arrow
+      e.preventDefault();
+      if(lastSentCmd != ""){
+        $("#consoleInput").val( lastSentCmd );
+      }
+
+    }
+  });
+
+
+  if ("onhashchange" in window) { // event supported?
+    window.onhashchange = function () {
+        hashChanged(window.location.hash);
+    }
+  } else { // event not supported:
+      var storedHash = window.location.hash;
+      window.setInterval(function () {
+          if (window.location.hash != storedHash) {
+              storedHash = window.location.hash;
+              hashChanged(storedHash);
+          }
+      }, 100);
   }
-});
+
+
+  $('.ui.menu')
+  .on('click', '.item', function() {
+    if(!$(this).hasClass('dropdown')) {
+      $(this)
+        .addClass('active')
+        .siblings('.item')
+          .removeClass('active');
+    }
+  });
+
+  $("#serial_connections").on("click", ".button", function(){
+    if(serial.isConnected()){
+      serial.close();
+    }
+    DisableWorkspace();
+    statusElement.html(statusErrorIcon);
+
+    portName = $(this).data("connectto");
+    console.log("Connectando a ", portName);
+    serial.open(portName, serialOptions);
+    $("#connected_to").html(portName);
+  })
+
+  $(".serial_reconnect").click(function(){
+    gotList(serial.list());
+  })
+
+  $('.mypopup').popup();
+
+  $("#set-custom-postion").click(function(){
+  	isSettingGondolaPos = true;
+  })
+
+  $("#control-pen-position").click(function(){
+  	isSettingNewPenPosition = true;
+  })
+
+  $("#pen-lift").click(function(){
+  	SerialSend("C14,UP,END");
+  })
+
+  $("#pen-drop").click(function(){
+  	SerialSend("C13,DOWN,END");
+  })
+
+  $('#tools-free-draw').click(function(){
+  	if(canvas.isDrawingMode){
+  		canvas.isDrawingMode = false;
+  	}else{
+  		canvas.isDrawingMode = true;
+  	}
+  });
+
+  $('#pause-queue').click(function(){
+  	if(isQueueActive){
+  		isQueueActive = false;
+  		$('#pause-queue').html( '<i class="play icon"></i>Play' );
+  	}else{
+  		isQueueActive = true;
+  		$('#pause-queue').html( '<i class="pause icon"></i>Pause' );
+  	}
+  });
+
+  $('#clear-queue').click(function(){
+  	machineQueue = [];
+  	$('#queue').html('');
+  });
+
+
+} // ui elements init
+
+
+// Machine functions
 
 function SetMachineDimensionsMM(_w, _h){
 	machineWidthMM = _w;
@@ -285,45 +455,6 @@ function SetNextPenPositionPixels(_x, _y){
 	console.log("New Pos: " + cmd);
 }
 
-
-canvas.on('mouse:move', function(opt) {
-
-	if (this.isDragging) {
-		var e = opt.e;
-		this.viewportTransform[4] += e.clientX - this.lastPosX;
-		this.viewportTransform[5] += e.clientY - this.lastPosY;
-		this.requestRenderAll();
-		this.lastPosX = e.clientX;
-		this.lastPosY = e.clientY;
-	}
-
-	let pointer = canvas.getPointer(options.e);
-	mouseVector.x = pointer.x;
-	mouseVector.y = pointer.y;
-
-	UpdatePositionMetadata(mouseVector);
-}); // mouse move
-
-canvas.on('mouse:up', function(opt) {
-  this.isDragging = false;
-  this.selection = true;
-});
-
-canvas.on('mouse:up', function(opt) {
-  this.isDragging = false;
-  this.selection = true;
-});
-
-var isMouseOverCanvas;
-$( "canvas" ).hover(
-  function() {
-    isMouseOverCanvas = true;
-  }, function() {
-    isMouseOverCanvas = false;
-    UpdatePositionMetadata(gondolaPositionPixels);
-  }
-);
-
 function UpdatePositionMetadata(vec){
   // Linea Motor
   motorLineRight.set({'x2': vec.x, 'y2': vec.y });
@@ -345,81 +476,6 @@ function UpdatePositionMetadata(vec){
 
   canvas.renderAll(); // update
 }
-
-canvas.on('path:created', function(e){
-  canvas.isDrawingMode = false;
-  var myPath = e.path;
-    // console.log(myPath);
-	let points = myPath.path;
-
-	for(let i = 0; i <  points.length; i++){
-		if(i == 0){
-			// Es el primer punto
-			AddToQueue("C14,UP,END") // pen lift
-			AddPixelCoordToQueue(points[i][2], points[i][1]);
-			AddToQueue("C13,DOWN,END"); // pen down
-
-		}else if(i == points.length-1){
-			// es el ultimo punto
-			AddPixelCoordToQueue(points[i][2], points[i][1]);
-      		AddToQueue("C14,UP,END") // pen lift
-		}else{
-			// Es un punto normal
-			AddPixelCoordToQueue(points[i][2], points[i][1]);
-		}
-	}
-});
-
-
-
-
-$("#set-custom-postion").click(function(){
-	isSettingGondolaPos = true;
-})
-
-
-
-$("#control-pen-position").click(function(){
-	// dif = new Victor();
-	isSettingNewPenPosition = true;
-
-})
-
-$("#pen-lift").click(function(){
-	SerialSend("C14,UP,END");
-})
-
-$("#pen-drop").click(function(){
-	SerialSend("C13,DOWN,END");
-})
-
-
-
-$('#tools-free-draw').click(function(){
-	if(canvas.isDrawingMode){
-		canvas.isDrawingMode = false;
-	}else{
-		canvas.isDrawingMode = true;
-	}
-});
-
-
-$('#pause-queue').click(function(){
-	if(isQueueActive){
-		isQueueActive = false;
-		$('#pause-queue').html( '<i class="play icon"></i>Play' );
-	}else{
-		isQueueActive = true;
-		$('#pause-queue').html( '<i class="pause icon"></i>Pause' );
-	}
-});
-
-$('#clear-queue').click(function(){
-	machineQueue = [];
-	$('#queue').html('');
-});
-
-
 
 
 // We are connected and ready to go
@@ -463,14 +519,9 @@ function gotError(theerror) {
 	statusElement.html(statusErrorIcon);
 }
 
-
 function p(txt){
   console.log(txt);
 }
-
-//
-// console
-//
 
 var lastReceivedString = "";
 var lastSentCmd = ""; // TODO hacer de esto un array
@@ -602,88 +653,6 @@ function gotData() {
   lastReceivedString = currentString;
 }
 
-
-
-
-$("document").ready(function(){
-
-  $("#consoleInput").focus();
-  // AjustarTamanno();
-
-  // Input console
-  $("#consoleInput").keyup(function(e){
-    let code = e.which; // recommended to use e.which, it's normalized across browsers
-    if(code==13||code==176){
-      // 13 es el Enter comun. 176 es el enter del keypad
-      e.preventDefault();
-      let msg = $("#consoleInput").val();
-      if( msg == "") return;
-      msg = msg.toUpperCase();
-      SerialSend(msg);
-      // WriteConsole(msg, false);
-      $("#consoleInput").val(""); // Vacío el input
-      lastSentCmd = msg;
-
-    }else if (code==38||code==104) {
-      // Up arrow
-      e.preventDefault();
-      if(lastSentCmd != ""){
-        $("#consoleInput").val( lastSentCmd );
-      }
-
-    }
-  });
-
-
-  if ("onhashchange" in window) { // event supported?
-    window.onhashchange = function () {
-        hashChanged(window.location.hash);
-    }
-  } else { // event not supported:
-      var storedHash = window.location.hash;
-      window.setInterval(function () {
-          if (window.location.hash != storedHash) {
-              storedHash = window.location.hash;
-              hashChanged(storedHash);
-          }
-      }, 100);
-  }
-
-
-  $('.ui.menu')
-  .on('click', '.item', function() {
-    if(!$(this).hasClass('dropdown')) {
-      $(this)
-        .addClass('active')
-        .siblings('.item')
-          .removeClass('active');
-    }
-  });
-
-
-    $("#serial_connections").on("click", ".button", function(){
-      if(serial.isConnected()){
-        serial.close();
-      }
-      DisableWorkspace();
-      statusElement.html(statusErrorIcon);
-
-      portName = $(this).data("connectto");
-      console.log("Connectando a ", portName);
-      serial.open(portName, serialOptions);
-      $("#connected_to").html(portName);
-    })
-
-    $(".serial_reconnect").click(function(){
-
-      gotList(serial.list());
-    })
-
-    $('.mypopup').popup();
-
-
-}); // doc ready
-
 function WriteConsole(txt, received = false){
   let icon, clase = "log";
   if(received){
@@ -752,13 +721,7 @@ function AddMMCoordToQueue(x,y){
 	AddToQueue(cmd);
 }
 
-
-function resizeCanvas() {
-  canvas.setHeight( $('#canvasSizer').height() );
-  canvas.setWidth(  $('#canvasSizer').width() );
-  /*
-  * Grid
-  */
+function DrawGrid(){
   let offset = -200;
   options = {
      distance: 20,
@@ -772,7 +735,6 @@ function resizeCanvas() {
   },
   gridLen = options.width / options.distance;
 
-
   for (var i = 0; i < gridLen; i++) {
       var distance   = (i * options.distance) + offset,
         horizontal = new fabric.Line([ distance, + offset, distance, options.width + offset], options.param),
@@ -785,8 +747,12 @@ function resizeCanvas() {
         };
     };
     // End grid
+    canvas.renderAll();
+}
 
-  canvas.renderAll();
+function resizeCanvas() {
+  canvas.setHeight( $('#canvasSizer').height() );
+  canvas.setWidth(  $('#canvasSizer').width() );
 }
 
 
@@ -840,7 +806,6 @@ const Melt = class{
 		}
 	}
 
-
 	ellipse(x, y, r, res = 100){
 		// First I generete an array of points that create the circle
 		this.circleVectors = [];
@@ -862,5 +827,4 @@ const Melt = class{
 	}
 }
 
-
-const melt = new Melt();
+// const melt = new Melt();
