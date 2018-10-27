@@ -32,19 +32,30 @@
 
           </div><!-- headerContainer --></div>
 
-          <div class=" column"></div>
+          <div class="column"></div>
 
-        <div class="right floated column statusContainer">
-          <div class="status">status <span id="statusAlert">
-            <i class="statuserror small exclamation circle icon"></i>
-          </span></div>
+        	<div class="right floated column statusContainer">
+          		<div class="status">status
+					<span id="statusAlert">
+            			<i class="statuserror small exclamation circle icon"></i>
+          			</span>
+				</div>
         </div>
       </div>
 
     </div>
 
-
-
+	<div id="ws-alert">
+		<div class="ui icon negative message">
+		  <i class="exclamation triangle icon"></i>
+		  <div class="content">
+		    <div class="header">
+		      Unable to connect to WebSocket
+		    </div>
+		    <p>I don't speak serial, so I need a node.js server to do the work for me. We speak through a WebSocket.</br><a href="https://github.com/vanevery/p5.serialport" target="_blank">Clone this lovely project</a>, install and run on background.</p>
+		  </div>
+		</div>
+	</div>
 
 
     <div class="ui stackable equal height grid columnsContainer">
@@ -225,8 +236,8 @@
 
 								<h5>Serial</h5>
 								<p>Connected to <span id="connected_to"></span></p>
-                <button class="ui mini labeled icon button" id="serial_reconnect">
-                  <i class="undo icon"></i>
+                <button class="ui mini labeled icon button serial_reconnect">
+                  <i class="road icon"></i>
                   New Connection
                 </button>
 
@@ -242,7 +253,11 @@
       <div class="ten wide column">
         <div class="dashboardElement ui segment">
 						<div id="dimmerEl" class="ui active dimmer">
-							<div id="loaderEl" class="ui active loader"></div> <!-- loader -->
+							<div id="loaderEl" class="ui text loader">
+								Waiting for Polargraph
+								</br></br>
+								<button class="ui basic inverted mini button serial_reconnect"><i class="road icon"></i>New Connection</button>
+							</div> <!-- loader -->
 						</div> <!-- dimmer -->
 
 	            <div id="canvasSizer">
