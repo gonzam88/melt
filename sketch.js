@@ -176,7 +176,7 @@ var newPenPositionCircle;
 // Mousewheel Zoom
 canvas.on('mouse:wheel', function(opt) {
   var delta = opt.e.deltaY;
-  var pointer = canvas.getPointer(opt.e);
+  let pointer = canvas.getPointer(opt.e);
   var zoom = canvas.getZoom();
   zoom = zoom + delta/200;
   if (zoom > 10) zoom = 10;
@@ -196,11 +196,11 @@ canvas.on('mouse:down', function(opt) {
       this.lastPosY = evt.clientY;
   }else{
       if( isSettingGondolaPos){
-          SetGondolaPositionPixels(mouseX, mouseY);
+      SetGondolaPositionPixels(mouseVector.x, mouseVector.y);
 		  isSettingGondolaPos = false; // SHould this go here or inside the function SetGondolaPositionPixels ?
 
 	  }else if( isSettingNewPenPosition ){
-		  SetNextPenPositionPixels(mouseX, mouseY);
+		  SetNextPenPositionPixels(mouseVector.x, mouseVector.y);
 		  isSettingNewPenPosition = false;
 	  }
   }
@@ -239,8 +239,8 @@ function SetGondolaPositionPixels(_x, _y){
   gondolaPositionPixels.y = _y;
   gondolaPoint.left = _x;
   gondolaPoint.top = _y;
-  canvas.renderAll();
-  console.log("New Gondola Position: " + gondolaPositionPixels);
+  UpdatePositionMetadata(gondolaPositionPixels);
+  // console.log("New Gondola Position: " + gondolaPositionPixels);
 
 	let leftMotorDist = gondolaPositionPixels.distance(leftMotorPositionPixels) *  pxPerStep;
 	let rightMotorDist = gondolaPositionPixels.distance(rightMotorPositionPixels) *  pxPerStep;
@@ -256,8 +256,8 @@ function SyncGondolaPosition(_x, _y){
   gondolaPositionPixels.y = _y;
   gondolaPoint.left = _x;
   gondolaPoint.top = _y;
-  canvas.renderAll();
-  console.log("New Gondola Position: " + gondolaPositionPixels);
+  UpdatePositionMetadata(gondolaPositionPixels);
+  // console.log("New Gondola Position: " + gondolaPositionPixels);
 }
 
 function  NativeToCartesian(_left, _right){
@@ -287,10 +287,6 @@ function SetNextPenPositionPixels(_x, _y){
 }
 
 
-
-var mouseX, mouseY;
-var pointer;
-
 canvas.on('mouse:move', function(opt) {
 
   if (this.isDragging) {
@@ -302,29 +298,11 @@ canvas.on('mouse:move', function(opt) {
     this.lastPosY = e.clientY;
   }
 
-  pointer = canvas.getPointer(options.e);
-  mouseX = pointer.x;
-  mouseY = pointer.y;
-  // Linea Motor
-  lineaMotorDer.set({'x2': mouseX, 'y2': mouseY });
-  lineaMotorIzq.set({'x2': mouseX, 'y2': mouseY});
-  canvas.renderAll(); // update
+  let pointer = canvas.getPointer(options.e);
+  mouseVector.x = pointer.x;
+  mouseVector.y = pointer.y;
 
-  $("#canvasMetaData .x").html( Math.round(mouseX) );
-  $("#canvasMetaData .y").html( Math.round(mouseY) );
-  $("#canvasMetaData .xmm").html( (mouseX * pxToMMFactor).toFixed(1) );
-  $("#canvasMetaData .ymm").html( (mouseY * pxToMMFactor).toFixed(1) );
-
-  mouseVector.x = mouseX;
-  mouseVector.y = mouseY;
-
-  let disToLMotor = mouseVector.distance(leftMotorPositionPixels);
-  $("#canvasMetaData .lmotomm").html( (disToLMotor * pxToMMFactor).toFixed(1) );
-  $("#canvasMetaData .lmotosteps").html( (disToLMotor *  pxPerStep).toFixed(1));
-
-  let disToRMotor = mouseVector.distance(rightMotorPositionPixels);
-  $("#canvasMetaData .rmotomm").html( (disToRMotor * pxToMMFactor).toFixed(1) );
-  $("#canvasMetaData .rmotosteps").html( (disToRMotor *  pxPerStep).toFixed(1));
+  UpdatePositionMetadata(mouseVector);
 
 }); // mouse move
 
@@ -333,6 +311,42 @@ canvas.on('mouse:up', function(opt) {
   this.selection = true;
 });
 
+canvas.on('mouse:up', function(opt) {
+  this.isDragging = false;
+  this.selection = true;
+});
+
+var isMouseOverCanvas;
+$( "canvas" ).hover(
+  function() {
+    isMouseOverCanvas = true;
+  }, function() {
+    isMouseOverCanvas = false;
+    UpdatePositionMetadata(gondolaPositionPixels);
+  }
+);
+
+function UpdatePositionMetadata(vec){
+  // Linea Motor
+  lineaMotorDer.set({'x2': vec.x, 'y2': vec.y });
+  lineaMotorIzq.set({'x2': vec.x, 'y2': vec.y});
+
+  $("#canvasMetaData .x").html( Math.round(vec.x) );
+  $("#canvasMetaData .y").html( Math.round(vec.y) );
+
+  $("#canvasMetaData .xmm").html( (vec.x * pxToMMFactor).toFixed(1) );
+  $("#canvasMetaData .ymm").html( (vec.y * pxToMMFactor).toFixed(1) );
+
+  let disToLMotor = vec.distance(leftMotorPositionPixels);
+  $("#canvasMetaData .lmotomm").html( (disToLMotor * pxToMMFactor).toFixed(1) );
+  $("#canvasMetaData .lmotosteps").html( (disToLMotor *  pxPerStep).toFixed(1));
+
+  let disToRMotor = vec.distance(rightMotorPositionPixels);
+  $("#canvasMetaData .rmotomm").html( (disToRMotor * pxToMMFactor).toFixed(1) );
+  $("#canvasMetaData .rmotosteps").html( (disToRMotor *  pxPerStep).toFixed(1));
+
+  canvas.renderAll(); // update
+}
 
 canvas.on('path:created', function(e){
   canvas.isDrawingMode = false;
@@ -357,6 +371,8 @@ canvas.on('path:created', function(e){
 		}
 	}
 });
+
+
 
 
 $("#set-custom-postion").click(function(){
@@ -544,9 +560,6 @@ function gotData() {
 			// TODO Revisar que pxPerStep este bien!
 		break;
 	}
-
-
-
   // end parse response
 
   if(currentString == lastReceivedString){
@@ -557,7 +570,7 @@ function gotData() {
     $(".log:last-child .content").html( "(" + repetitions + ") " + currentString);
     return;
   }
-  WriteConsole(currentString);
+  WriteConsole(currentString, true);
   lastReceivedString = currentString;
 }
 
@@ -638,7 +651,7 @@ $("document").ready(function(){
 
 }); // doc ready
 
-function WriteConsole(txt, received = true){
+function WriteConsole(txt, received = false){
   let icon, clase = "log";
   if(received){
      icon = '<i class="caret down icon receivedCmd"></i>';
