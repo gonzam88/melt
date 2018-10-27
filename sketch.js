@@ -14,7 +14,7 @@ var serialOptions = {
 
 //var machineWidthRevs = 1500; machineHeightRevs = 1200;
 var machineWidthSteps, machineHeightSteps;
-var mmPerRev, stepsPerPrev;
+var mmPerRev, stepsPerRev;
 var stepMultiplier;
 var downPos, upPos;
 var mmPerStep, stepsPerMM;
@@ -28,7 +28,7 @@ var machineQueue = [];
 
 var mmToPxFactor = 0.25;
 var pxToMMFactor = 4;
-var  pxPerStep; // TODO
+var pxPerStep, stepPerPx;
 
 var leftDistRevs = 0, rightDistRevs = 0, leftDistMM = 0, rightDistMM = 0;
 
@@ -205,25 +205,25 @@ canvas.on('mouse:down', function(opt) {
 });
 
 function SetMachineDimensionsMM(_w, _h){
-    machineWidthMM = _w;
-    machineHeightMM = _h;
+  machineWidthMM = _w;
+  machineHeightMM = _h;
 
 	machineWidthSteps = machineWidthMM * stepsPerMM;
 	machineHeightMMSteps = machineHeightMM * stepsPerMM;
-
-	pxToStepsFactor = mmToPxFactor * stepsPerMM;
 
 	leftMotorPositionSteps = new Victor(0,0);
 	rightMotorPositionSteps = new Victor(0, machineWidthSteps);
 
 	rightMotorPositionPixels.x = machineWidthMM * mmToPxFactor;
 
-    motorDer.left = rightMotorPositionPixels.x;
-    lineaMotorDer.set({'x1': motorDer.left, 'y1': 0})
+  motorDer.left = rightMotorPositionPixels.x;
+  lineaMotorDer.set({'x1': motorDer.left, 'y1': 0})
 
-    machineSquare.set({'width': motorDer.left, 'height': machineHeightMM * mmToPxFactor});
+  machineSquare.set({'width': motorDer.left, 'height': machineHeightMM * mmToPxFactor});
+  canvas.renderAll();
 
-    canvas.renderAll();
+	pxPerStep = machineWidthSteps / rightMotorPositionPixels.x;
+  stepPerPx = rightMotorPositionPixels.x / machineWidthSteps;
 }
 
 // function SetMachineDimensionsSteps(_w, _h){
@@ -233,12 +233,12 @@ function SetMachineDimensionsMM(_w, _h){
 // }
 
 function SetGondolaPositionPixels(_x, _y){
-    gondolaPositionPixels.x = _x;
-    gondolaPositionPixels.y = _y;
-    gondolaPoint.left = _x;
-    gondolaPoint.top = _y;
-	canvas.renderAll();
-    console.log("New Gondola Position: " + gondolaPositionPixels);
+  gondolaPositionPixels.x = _x;
+  gondolaPositionPixels.y = _y;
+  gondolaPoint.left = _x;
+  gondolaPoint.top = _y;
+  canvas.renderAll();
+  console.log("New Gondola Position: " + gondolaPositionPixels);
 
 	let leftMotorDist = gondolaPositionPixels.distance(leftMotorPositionPixels) *  pxPerStep;
 	let rightMotorDist = gondolaPositionPixels.distance(rightMotorPositionPixels) *  pxPerStep;
@@ -247,6 +247,15 @@ function SetGondolaPositionPixels(_x, _y){
 	SerialSend(cmd);
 	// WriteConsole(cmd);
 	console.log("New Pos: " + cmd);
+}
+
+function SyncGondolaPosition(_x, _y){
+  gondolaPositionPixels.x = _x;
+  gondolaPositionPixels.y = _y;
+  gondolaPoint.left = _x;
+  gondolaPoint.top = _y;
+  canvas.renderAll();
+  console.log("New Gondola Position: " + gondolaPositionPixels);
 }
 
 function  NativeToCartesian(_left, _right){
@@ -281,6 +290,7 @@ var mouseX, mouseY;
 var pointer;
 
 canvas.on('mouse:move', function(opt) {
+
   if (this.isDragging) {
     var e = opt.e;
     this.viewportTransform[4] += e.clientX - this.lastPosX;
@@ -461,25 +471,26 @@ function gotData() {
 	  		break;
 
 		case 'Loaded':
-			if(responseWords[1] == "width"){
+			if(responseWords[1].startsWith("width")){
 				machineWidthMM = parseInt( responseWords[1].split(":")[1] );
 				$("#inputMachineWidth").val(machineWidthMM);
 
-			}else if(responseWords[1] == "height"){
-				machineHeightMM = parseInt( responseWords[1].split(":")[1] );
-				$("#inputMachineHeigth").val(machineHeightMM);
 
-			}else if(responseWords[1] == "mmPerRev"){
-				mmPerRev = parseInt( responseWords[1].split(":")[1] );
-				$("#inputMmPerRev").val(responseWords);
+			}else if(responseWords[1].startsWith("height")){
+				machineHeightMM = parseInt( responseWords[1].split(":")[1] );
+				$("#inputMachineHeight").val(machineHeightMM);
+
+      }else if(responseWords[1].startsWith("mmPerRev")){
+        mmPerRev = parseInt( responseWords[1].split(":")[1] );
+        $("#inputMmPerRev").val(mmPerRev);
 
 			}else if(responseWords[1] == "steps" && responseWords[2] == "per" ){
-				mmPerRev = parseInt( responseWords[3].split(":")[1] );
-				$("#inputMmPerRev").val(mmPerRev);
+				stepsPerRev = parseInt( responseWords[3].split(":")[1] );
+				$("#inputStepsPerRev").val(stepsPerRev);
 
 			}else if(responseWords[1] =="step"  && responseWords[2].startsWith("multiplier")){
 				stepMultiplier = parseInt( responseWords[2].split(":")[1] );
-				$("#inputStepMultiplier").val(mmPerRev);
+				$("#inputStepMultiplier").val(stepMultiplier);
 
 			}else if(responseWords[1] == "down"){
 				downPos = parseInt( responseWords[2].split(":")[1] );
@@ -521,7 +532,7 @@ function gotData() {
 			syncedRight = responseWords[2];
 
 			let gondolaPos = NativeToCartesian(syncedLeft, syncedRight);
-			SetGondolaPositionPixels(gondolaPos.x *  pxPerStep, gondolaPos.y * pxPerStep);
+			SyncGondolaPosition(gondolaPos.x *  stepPerPx, gondolaPos.y * stepPerPx);
 			// TODO Revisar que pxPerStep este bien!
 		break;
 	}
@@ -603,15 +614,12 @@ $("document").ready(function(){
 
     $("#serial_connections").on("click", "button", function(){
       // serial.close();
-      console.log("sd");
       portName = $(this).data("connectto");
       console.log("Connectando a ", portName);
       serial.open(portName, serialOptions);
     })
 
-
     $('.mypopup').popup();
-
 
 
 }); // doc ready
