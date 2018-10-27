@@ -23,6 +23,7 @@ var machineWidthMM, machineHeightMM;
 var leftMotorPositionSteps, rightMotorPositionSteps;
 var isMachineReady = false;
 var isQueueActive = true;
+var motorMaxSpeed, motorAcceleration;
 
 var machineQueue = [];
 
@@ -450,7 +451,6 @@ function gotList(thelist) {
 // Connected to our serial device
 function gotOpen() {
   console.log("Serial Port is open!");
-  statusElement.html(statusSuccessIcon);
 }
 
 // Ut oh, here is an error, let's log it
@@ -479,6 +479,13 @@ function SerialSend(cmd){
   WriteConsole(cmd)
 }
 
+function EnableWorkspace(){
+  $("#dimmerEl").removeClass("active");
+}
+function DisableWorkspace(){
+  $("#dimmerEl").addClass("active");
+}
+
 // There is data available to work with from the serial port
 function gotData() {
   var currentString = serial.readStringUntil("\r\n");
@@ -489,7 +496,14 @@ function gotData() {
   // Parse response in cases where data is space separated
   var responseWords = currentString.split(" ");
   switch(responseWords[0]){
-		case 'READY':
+    case 'POLARGRAPH':
+      // Serial connection worked
+      statusElement.html(statusSuccessIcon);
+      EnableWorkspace();
+      SerialSend("C26,END");
+    break;
+
+    case 'READY':
 	  		statusElement.html(statusSuccessIcon);
 			isMachineReady = true;
 	  		break;
@@ -546,6 +560,8 @@ function gotData() {
 				SetMachineDimensionsMM(machineWidthMM, machineHeightMM);
 			}
 		break;
+
+
   }
 
 	// Now check for cases where data is comma separated
@@ -559,6 +575,15 @@ function gotData() {
 			SyncGondolaPosition(gondolaPos.x *  stepPerPx, gondolaPos.y * stepPerPx);
 			// TODO Revisar que pxPerStep este bien!
 		break;
+
+    case 'PGSPEED':
+      motorMaxSpeed = parseInt( responseWords[1] );
+      motorAcceleration = parseInt( responseWords[2] );
+
+      $("#inputMaxSpeed").val(motorMaxSpeed);
+      $("#inputAcceleration").val(motorAcceleration);
+
+    break;
 	}
   // end parse response
 
@@ -634,7 +659,12 @@ $("document").ready(function(){
 
 
     $("#serial_connections").on("click", ".button", function(){
-      // serial.close();
+      if(serial.isConnected()){
+        serial.close();
+      }
+      DisableWorkspace();
+      statusElement.html(statusErrorIcon);
+
       portName = $(this).data("connectto");
       console.log("Connectando a ", portName);
       serial.open(portName, serialOptions);
@@ -642,7 +672,7 @@ $("document").ready(function(){
     })
 
     $("#serial_reconnect").click(function(){
-      serial.close();
+
       gotList(serial.list());
     })
 
@@ -671,9 +701,12 @@ function hashChanged(h){
   h = h.substr(1);
   let newContent = $("#content-"+h);
   // if( currContent != newContent ){
-    currContent.hide();
-    newContent.show();
-    currContent = newContent;
+  currContent.hide();
+  newContent.show();
+  if(h == "console"){
+    $("#console").scrollTop($("#console")[0].scrollHeight); // Scroleo para abajo de todo
+  }
+  currContent = newContent;
   // }
 
 }

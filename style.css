@@ -154,6 +154,9 @@ h2 .content, .ui.header .sub.header{
 .statuserror{
   color: #BF6169
 }
+canvas:hover{
+  cursor: copy;
+}
 #canvasSizer{
     width: 100%;
     height: 100%;
@@ -161,8 +164,10 @@ h2 .content, .ui.header .sub.header{
 
 #canvasMetaData{
     font-size: 10px;
+    text-shadow: 1px 1px 2px #000000c7;
     position: relative;
     bottom: 80px;
+    pointer-events: none;
 }
 
 
@@ -171,4 +176,10 @@ h2 .content, .ui.header .sub.header{
 }
 #connected_to{
   font-weight: 600;
+}
+.ui.segment{
+  background-color: #3A4251;
+}
+.ui.dimmer{
+  background-color: #3a4251ed
 }

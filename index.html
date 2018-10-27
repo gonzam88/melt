@@ -209,15 +209,15 @@
 
                 <h5>Machine Configuration</h5>
                 <div class="ui fluid buttons">
-                  <button class="ui button">Upload</button>
-                  <button class="ui button">Download</button>
+                  <button class="ui disabled button">Upload</button>
+                  <button class="ui disabled button">Download</button>
                 </div>
 
                 <h5>Configuration File</h5>
                 <div class="ui fluid buttons">
-                  <button class="ui button">Save</button>
-                  <button class="ui button">Save As...</button>
-                  <button class="ui button">Load</button>
+                  <button class="ui disabled button">Save</button>
+                  <button class="ui disabled button">Save As...</button>
+                  <button class="ui disabled button">Load</button>
                 </div>
 
                 <div class="ui divider"></div>
@@ -240,27 +240,25 @@
 
 
       <div class="ten wide column">
-        <div class="dashboardElement">
+        <div class="dashboardElement ui segment">
+						<div id="dimmerEl" class="ui active dimmer">
+							<div id="loaderEl" class="ui active loader"></div> <!-- loader -->
+						</div> <!-- dimmer -->
 
-            <div id="canvasSizer">
+	            <div id="canvasSizer">
+	            	<canvas id="myCanvas"></canvas>
+	            </div>
+	            <div id="canvasMetaData">
+	                X: <span class="x"></span>,
+	                Y: <span class="y"></span><br />
+	                X: <span class="xmm"></span> mm,
+	                Y: <span class="ymm"></span> mm<br />
+	                L Motor: <span class="lmotomm"></span> mm, <span class="lmotosteps"></span> steps<br />
+	                R Motor: <span class="rmotomm"></span> mm, <span class="rmotosteps"></span> steps<br />
+	            </div>
 
-                <canvas id="myCanvas"></canvas>
 
-
-            </div>
-            <div id="canvasMetaData">
-                X: <span class="x"></span>,
-                Y: <span class="y"></span><br />
-                X: <span class="xmm"></span> mm,
-                Y: <span class="ymm"></span> mm<br />
-                L Motor: <span class="lmotomm"></span> mm, <span class="lmotosteps"></span> steps<br />
-                R Motor: <span class="rmotomm"></span> mm, <span class="rmotosteps"></span> steps<br />
-
-            </div>
-            <!-- <div id="p5container">
-
-            </div> -->
-          </div>
+          </div> <!-- ui segment -->
       </div> <!-- six wide col -->
 
 
