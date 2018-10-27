@@ -73,13 +73,13 @@ h2 .content, .ui.header .sub.header{
 	height: calc(100% - 50px );
 	width: 100%;
 	overflow-y: auto;
-    overflow-x: hidden;
+  overflow-x: hidden;
 }
-#queue .divider:last-of-type{
-	display: none;
+#queue .item:last-of-type .divider{
+	display: none
 }
 #content-queue .button{
-	width: 49%;
+	width: 48%;
 }
 
 .log{

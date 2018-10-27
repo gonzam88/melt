@@ -336,21 +336,21 @@ canvas.on('path:created', function(e){
     var myPath = e.path;
     // console.log(myPath);
 	let points = myPath.path;
+
 	for(let i = 0; i <  points.length; i++){
 		if(i == 0){
 			// Es el primer punto
 			AddToQueue("C14,UP,END") // pen lift
-			AddPixelCoordToQueue(points[i][1], points[i][2]);
-			SerialSend("C13,DOWN,END"); // pen down
+			AddPixelCoordToQueue(points[i][2], points[i][1]);
+			AddToQueue("C13,DOWN,END"); // pen down
 
 		}else if(i == points.length-1){
 			// es el ultimo punto
-			AddToQueue("C14,UP,END") // pen lift
-			AddPixelCoordToQueue(points[i][1], points[i][2]);
-
+			AddPixelCoordToQueue(points[i][2], points[i][1]);
+      AddToQueue("C14,UP,END") // pen lift
 		}else{
 			// Es un punto normal
-			AddPixelCoordToQueue(points[i][1], points[i][2]);
+			AddPixelCoordToQueue(points[i][2], points[i][1]);
 		}
 	}
 });
@@ -661,7 +661,7 @@ function CheckQueue(){
 }
 
 function AddToQueue(cmd){
-	$("#queue").append("<div class='item'>"+cmd+"</div><div class='ui divider'></div>");
+	$("#queue").append("<div class='queue item'><span class='cmd'>"+cmd+"</span><div class='ui divider'></div></div>");
 	machineQueue.push(cmd);
 }
 
