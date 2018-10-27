@@ -135,6 +135,7 @@
               <!-- SETTINGS -->
               <div id="content-settings">
 
+								<h5>Machine</h5>
 
                 <div class="ui fluid right labeled input mypopup"  data-html="<div class='header'>Set Machine Size</div><div class='content'><pre>C24,[width],[height],END</pre>Sets the machine's dimensions in millimetres.</div>">
                   <div class="ui basic label">Machine Width (mm)</div>
@@ -163,12 +164,12 @@
                   <input type="number" placeholder="16" id="inputStepMultiplier">
                 </div>
 
-				<div class="ui fluid right labeled input">
+								<div class="ui fluid right labeled input">
                   <div class="ui basic label">Pen Down Position</div>
                   <input type="number" placeholder="90" id="inputDownPos">
                 </div>
 
-				<div class="ui fluid right labeled input">
+								<div class="ui fluid right labeled input">
                   <div class="ui basic label">Pen Up Position</div>
                   <input type="number" placeholder="180" id="inputUpPos">
                 </div>
@@ -183,24 +184,24 @@
                   <input type="number" placeholder="400" id="inputAcceleration">
                 </div>
 
-				<div class="ui fluid right labeled input disabled">
+								<h5>Calculated</h5>
+
+								<div class="ui fluid right labeled input disabled">
                   <div class="ui basic label">MM per Step</div>
                   <input type="number" placeholder="0.16" id="inputMmPerStep">
                 </div>
 
-				<div class="ui fluid right labeled input disabled">
+								<div class="ui fluid right labeled input disabled">
                   <div class="ui basic label">Steps Per MM</div>
                   <input type="number" placeholder="6.25" id="inputStepsPerMM">
                 </div>
 
-                <div class="ui divider"></div>
-
-                <div class="ui fluid right labeled input">
+                <div class="ui fluid right labeled input disabled">
                   <div class="ui basic label">Page Width (steps)</div>
                   <input type="number" placeholder="200"  id="inputPageWidthSteps">
                 </div>
 
-                <div class="ui fluid right labeled input">
+                <div class="ui fluid right labeled input disabled">
                   <div class="ui basic label">Page Height (steps)</div>
                   <input type="number" placeholder="400" id="inputPageHeightSteps">
                 </div>
@@ -208,6 +209,7 @@
                 <div class="ui divider"></div>
 
                 <h5>Machine Configuration</h5>
+
                 <div class="ui fluid buttons">
                   <button class="ui disabled button">Upload</button>
                   <button class="ui disabled button">Download</button>
