@@ -96,7 +96,7 @@ var newPenPositionCircle;
 
     window.addEventListener('resize', resizeCanvas, false);
     // resize on init
-
+    resizeCanvas();
 
 	// Define some fabric.js elements
     motorLineRight = new fabric.Line([rightMotorPositionPixels.x, rightMotorPositionPixels.y, 0, 0], {
@@ -176,12 +176,7 @@ var newPenPositionCircle;
 	canvas.add(newPenPositionCircle);
 
 	/* *********** */
-<<<<<<< HEAD
-  resizeCanvas();
-  DrawGrid();
-=======
 	setTimeout(CheckWsConnection, 1000); // 1 second after we start, we check wether a connection has been established to WebSocket. otherwise we show an alert
->>>>>>> 18620a65d438c5272f4ed1344bcd5c07226977df
 	CheckQueue();
 
 })();
@@ -195,14 +190,6 @@ canvas.on('mouse:wheel', function(opt) {
   if (zoom > 10) zoom = 10;
   if (zoom < 0.6) zoom = 0.6;
   canvas.zoomToPoint({ x: opt.e.offsetX, y: opt.e.offsetY }, zoom);
-
-  // Le tengo que mandar setCoords a todos los elementos (me salteo los de la grilla)
-  canvas.getObjects().forEach(object=>{
-    if( !object.isGrid){
-        object.setCoords();
-    }
-  });
-
   opt.e.preventDefault();
   opt.e.stopPropagation();
 });
@@ -246,13 +233,7 @@ function SetMachineDimensionsMM(_w, _h){
 	canvas.renderAll();
 
 	pxPerStep = machineWidthSteps / rightMotorPositionPixels.x;
-<<<<<<< HEAD
-  stepPerPx = rightMotorPositionPixels.x / machineWidthSteps;
-
-  CenterWorkspace();
-=======
 	stepPerPx = rightMotorPositionPixels.x / machineWidthSteps;
->>>>>>> 18620a65d438c5272f4ed1344bcd5c07226977df
 }
 
 function SetGondolaPositionPixels(_x, _y){
@@ -762,9 +743,6 @@ function AddPixelCoordToQueue(x,y){
 	AddToQueue(cmd);
 }
 
-<<<<<<< HEAD
-function DrawGrid(){
-=======
 function AddMMCoordToQueue(x,y){
 	let pos = new Victor(x *  mmPerStep, y *  mmPerStep);
 	let leftMotorDist = pos.distance(leftMotorPositionSteps);
@@ -778,7 +756,6 @@ function AddMMCoordToQueue(x,y){
 function resizeCanvas() {
   canvas.setHeight( $('#canvasSizer').height() );
   canvas.setWidth(  $('#canvasSizer').width() );
->>>>>>> 18620a65d438c5272f4ed1344bcd5c07226977df
   /*
   * Grid
   */
@@ -806,25 +783,8 @@ function resizeCanvas() {
             horizontal.set({stroke: '#7a7d82'});
             vertical.set({stroke: '#7a7d82'});
         };
-
-        horizontal.isGrid = true;
-        vertical.isGrid = true;
-        canvas.sendToBack(horizontal);
-        canvas.sendToBack(vertical);
     };
     // End grid
-}
-
-function CenterWorkspace(){
-  // Center canvas on machine
-  canvas.viewportTransform[4] = (canvas.width - machineSquare.width) / 2;
-  canvas.viewportTransform[5] = (canvas.height - machineSquare.height) / 2;
-  canvas.requestRenderAll();
-}
-
-function resizeCanvas() {
-  canvas.setHeight( $('#canvasSizer').height() );
-  canvas.setWidth(  $('#canvasSizer').width() );
 
   canvas.renderAll();
 }
