@@ -77,9 +77,9 @@ var newPenPositionCircle;
     serial.on('open', gotOpen);
 
     canvas = new fabric.Canvas('myCanvas');
-	canvas.freeDrawingBrush.color = "purple";
-    canvas.freeDrawingBrush.width = 2;
-	canvas.isDrawingMode = false;
+	  canvas.freeDrawingBrush.color = "purple";
+    canvas.freeDrawingBrush.width = .5;
+	  canvas.isDrawingMode = false;
 
     window.addEventListener('resize', resizeCanvas, false);
     // resize on init
@@ -168,6 +168,8 @@ var newPenPositionCircle;
 	// SetMachineDimensionsSteps(7500, 6250);
 
 	CheckQueue();
+
+;
 
 })();
 
@@ -333,7 +335,8 @@ canvas.on('mouse:up', function(opt) {
 
 
 canvas.on('path:created', function(e){
-    var myPath = e.path;
+  canvas.isDrawingMode = false;
+  var myPath = e.path;
     // console.log(myPath);
 	let points = myPath.path;
 
@@ -412,12 +415,17 @@ function serverConnected() {
 
 // Got the list of ports
 function gotList(thelist) {
+  $('.ui.basic.modal').modal('show');
   // theList is an array of their names
   $("#serial_connections").html("");
   let serialConnectionsContent = "";
   for (var i = 0; i < thelist.length; i++) {
     // Display in the console
-    serialConnectionsContent += '<button class="ui button newconnection" data-connectto="'+ thelist[i] +'">'+thelist[i]+'</button>';
+    var icon = "microchip";
+    if(thelist[i].includes("Bluetooth")){
+      icon = "bluetooth";
+    }
+    serialConnectionsContent += '<div class="ui green basic cancel inverted button" data-connectto="'+ thelist[i] +'"><i class="'+icon+' icon"></i> '+thelist[i]+'</div>';
   }
   $("#serial_connections").html(serialConnectionsContent);
 }
@@ -612,11 +620,17 @@ $("document").ready(function(){
   });
 
 
-    $("#serial_connections").on("click", "button", function(){
+    $("#serial_connections").on("click", ".button", function(){
       // serial.close();
       portName = $(this).data("connectto");
       console.log("Connectando a ", portName);
       serial.open(portName, serialOptions);
+      $("#connected_to").html(portName);
+    })
+
+    $("#serial_reconnect").click(function(){
+      serial.close();
+      gotList(serial.list());
     })
 
     $('.mypopup').popup();

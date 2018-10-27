@@ -222,14 +222,12 @@
 
                 <div class="ui divider"></div>
 
-                <h5>Conect To</h5>
-                <div class="ui tiny vertical fluid buttons" id="serial_connections">
 
-                </div>
-
-                <button class="ui mini labeled icon button">
+								<h5>Serial</h5>
+								<p>Connected to <span id="connected_to"></span></p>
+                <button class="ui mini labeled icon button" id="serial_reconnect">
                   <i class="undo icon"></i>
-                  Reload List
+                  New Connection
                 </button>
 
 
@@ -269,6 +267,24 @@
 
 
     </div> <!-- ui grid -->
+
+
+
+		<!-- Serian connection modal -->
+		<div class="ui basic modal">
+  <div class="ui icon header">
+    <i class="low vision icon"></i>
+    Serial Port
+  </div>
+  <div class="content" style="text-align:center">
+    <p>Select the serial port so we can see the Polargraph</p>
+  </div>
+  <div class="actions" style="text-align:center" id="serial_connections">
+
+
+  </div>
+</div>
+<!-- End serial connection modal -->
 
 
   </body>

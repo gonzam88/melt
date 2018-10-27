@@ -169,3 +169,6 @@ h2 .content, .ui.header .sub.header{
 #content-queue, #content-console, #content-tools, #content-settings{
 	display: none;
 }
+#connected_to{
+  font-weight: 600;
+}
