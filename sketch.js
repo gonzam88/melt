@@ -97,8 +97,8 @@ function FabricInit(){
 
   window.addEventListener('resize', resizeCanvas, false);
   // resize on init
-  resizeCanvas();
-  DrawGrid();
+  // resizeCanvas();
+  // DrawGrid();
 
   // Define some fabric.js elements
   motorLineRight = new fabric.Line([rightMotorPositionPixels.x, rightMotorPositionPixels.y, 0, 0], {
@@ -132,7 +132,6 @@ function FabricInit(){
   });
   canvas.add(motorRightCircle);
   canvas.add(motorLeftCircle);
-
 
   gondolaCircle = new fabric.Circle({
       radius: 3, fill: '#a4bd8e', left: 0, top: 0, hasControls: false, originX: 'center', originY: 'center',
@@ -188,9 +187,15 @@ function FabricInit(){
     canvas.zoomToPoint({ x: opt.e.offsetX, y: opt.e.offsetY }, zoom);
     opt.e.preventDefault();
     opt.e.stopPropagation();
+
+    let objs = canvas.getObjects();
+    for(let i=0; i < objs.length; i++ ){
+      if( !objs[i].isGrid){
+        objs[i].setCoords();
+      }
+    }
   });
 
-  // Pan
   canvas.on('mouse:down', function(opt) {
     var evt = opt.e;
     if (evt.altKey === true || opt.which == 2) {
@@ -214,6 +219,7 @@ function FabricInit(){
   canvas.on('mouse:move', function(opt) {
   	if (this.isDragging) {
   		var e = opt.e;
+      // Pan
   		this.viewportTransform[4] += e.clientX - this.lastPosX;
   		this.viewportTransform[5] += e.clientY - this.lastPosY;
   		this.requestRenderAll();
@@ -404,6 +410,9 @@ function SetMachineDimensionsMM(_w, _h){
 
 	pxPerStep = machineWidthSteps / rightMotorPositionPixels.x;
 	stepPerPx = rightMotorPositionPixels.x / machineWidthSteps;
+
+  resizeCanvas();
+  DrawGrid();
 }
 
 function SetGondolaPositionPixels(_x, _y){
@@ -724,14 +733,15 @@ function AddMMCoordToQueue(x,y){
 function DrawGrid(){
   let offset = -200;
   options = {
-     distance: 20,
-     width: canvas.width,
-     height: canvas.height,
-     param: {
+    isGrid: true,
+    distance: 20,
+    width: canvas.width,
+    height: canvas.height,
+    param: {
        stroke: '#4c5669',
        strokeWidth: 1,
        selectable: false
-     }
+    }
   },
   gridLen = options.width / options.distance;
 
@@ -753,6 +763,13 @@ function DrawGrid(){
 function resizeCanvas() {
   canvas.setHeight( $('#canvasSizer').height() );
   canvas.setWidth(  $('#canvasSizer').width() );
+
+  let offX = (canvas.width - machineSquare.width) / 2;
+  let offY = (canvas.height - machineSquare.height) / 2;
+
+  canvas.viewportTransform[4] = offX;
+  canvas.viewportTransform[5] = offY;
+  canvas.requestRenderAll();
 }
 
 
