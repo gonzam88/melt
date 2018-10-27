@@ -692,7 +692,12 @@ function WriteConsole(txt, received = false){
 
   let msg = "<div data-repeated='0' class='" + clase + "'>" + icon + txt  + "</div>";
   $("#console").append(msg);
-  $("#console").scrollTop($("#console")[0].scrollHeight); // Scroleo para abajo de todo
+  // $("#console").scrollTop($("#console")[0].scrollHeight); // Scroleo para abajo de todo
+
+  if($("#console").children().length > 500){
+    // Limit the amount of console history
+    $("#console").children().first().remove();
+  }
 }
 
 var currContent = $("#content-control");
@@ -711,13 +716,14 @@ function hashChanged(h){
 
 }
 
+var externalQueueLength = 0;
 function CheckQueue(){
 	// console.log("checking queue");
 	if(isQueueActive && isMachineReady && machineQueue.length > 0){
 		SerialSend( machineQueue.shift() );
 		$('#queue .item').first().remove()
 	}
-	setTimeout(CheckQueue, 800);
+	setTimeout(CheckQueue, 200);
 }
 
 function AddToQueue(cmd){
