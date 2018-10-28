@@ -827,26 +827,24 @@ const Melt = class{
 	}
 
 	ellipse(x, y, r, res = 100){
-    res = parseInt(res);
-		// First I generete an array of points that create the circle
-		this.circleVectors = [];
-	    for (let i = 0; i < res; i++) {
-	        let angle = map(i, 0, res, 0, 2 * Math.PI);
-	        let posX = (r * Math.cos(angle) + x);
-	        let posY = (r * Math.sin(angle) + y);
-			    this.temp = new Victor(posX, posY);
-	        this.circleVectors.push(this.temp);
-	    }
-
-		for(let i = 0; i < this.circleVectors.length; i++){
-      if(i == 0){
-        this.PenUp();
-      }else if(i == 1){
-        this.PenDown();
-      }
-			AddMMCoordToQueue(this.circleVectors[i].x, this.circleVectors[i].y);
-		}
-
+    res = Math.round(res);
+    this.cachedFirstVx;
+    this.PenUp();
+		// I generete an array of points that create the circle
+    for (let i = 0; i < res; i++) {
+        let angle = map(i, 0, res, 0, 2 * Math.PI);
+        let posX = (r * Math.cos(angle)) + x;
+        let posY = (r * Math.sin(angle)) + y;
+        if(i == 0){
+          this.cachedFirstVx = new Victor(posX,posY);
+        }else if(i == 1){
+          // After the moving to the first vertex I start drawing
+          this.PenDown();
+        }
+  			AddMMCoordToQueue(posX, posY);
+    }
+    // After the circle is complete i have to go back to the first vertex position
+		AddMMCoordToQueue(this.cachedFirstVx.x, this.cachedFirstVx.y);
 		this.PenUp();
 	}
 }
