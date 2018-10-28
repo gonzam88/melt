@@ -30,15 +30,16 @@
               </div>
             </h2>
 
-          </div><!-- headerContainer --></div>
+          </div><!-- headerContainer -->
+				</div>
 
           <div class="column"></div>
 
         	<div class="right floated column statusContainer">
           		<div class="status">status
 					<span id="statusAlert">
-            			<i class="statuserror small exclamation circle icon"></i>
-          			</span>
+      				<i class="statuserror small exclamation circle icon"></i>
+    			</span>
 				</div>
         </div>
       </div>
@@ -59,7 +60,7 @@
 
 
     <div class="ui stackable equal height grid columnsContainer">
-      <div class="six wide column">
+      <div id="leftColumn" class="six wide column">
         <div id="" class="dashboardElement">
 
             <div class="ui secondary pointing five item menu">
@@ -84,7 +85,7 @@
                       <i class="map icon"></i>Set Custom Postion
                     </button>
 
-					<button class="ui button" id="control-pen-position">
+										<button class="ui button" id="control-pen-position">
                       <i class="bug icon"></i>Control Pen Position
                     </button>
 
@@ -122,9 +123,7 @@
 									</div>
 									<div id="runCodeButton" class="ui bottom attached button" tabindex="0" style="width: calc( 100% + 2px);
     margin-left: -1px;"><i class="magic icon"></i> Draw Code</div>
-
                 </div>
-
 
 
                 <!-- CONSOLA -->
@@ -136,9 +135,7 @@
                 </div>
 
 
-
-
-				<!-- QUEUE -->
+								<!-- QUEUE -->
                 <div id="content-queue">
                   <div id="queue"></div>
 
@@ -154,7 +151,6 @@
 									<div id="elapsed-time"></div>
 
 								</div>
-
 
 
               <!-- SETTINGS -->
@@ -266,7 +262,7 @@
       </div> <!-- six wide col -->
 
 
-      <div class="ten wide column">
+      <div id="rightColumn" class="ten wide column">
         <div class="dashboardElement ui segment">
 						<div id="dimmerEl" class="ui active dimmer">
 							<div id="loaderEl" class="ui text loader">

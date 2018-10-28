@@ -54,6 +54,7 @@ var leftMotorPositionPixels = new Victor(0,0);
 var rightMotorPositionPixels = new Victor(0,0);
 var newPenPositionArrow, newPenPositionCircle;
 var waitingReadyAfterPause = false;
+var currContent;
 
 var flask;
 var melt;
@@ -296,7 +297,8 @@ function UiInit(){
     }
   });
 
-  var currContent = $("#content-control");
+  currContent = $("#content-control");
+
   $(".main-menu-link").click(function(){
     let href = $(this).data("panel");
     let newContent = $("#content-"+href);
@@ -306,6 +308,15 @@ function UiInit(){
     if(href == "console"){
       $("#console").scrollTop($("#console")[0].scrollHeight); // Scroleo para abajo de todo
     }
+
+    if( href == "tools"){
+       $("#leftColumn").removeClass("six wide column").addClass("eight wide column");
+       $("#rightColumn").removeClass("ten wide column").addClass("eight wide column");
+    }else{
+        $("#leftColumn").removeClass("eight wide column").addClass("six wide column");
+        $("#rightColumn").removeClass("eight wide column").addClass("ten wide column");
+    }
+
     currContent = newContent;
   })
 

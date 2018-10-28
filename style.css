@@ -223,3 +223,11 @@ h2 .content, .ui.header .sub.header{
   color: #BF6169;
   display: none;
 }
+
+#leftColumn, #rightColumn{
+  transition: width 0.5s;
+  webkit-transition: width 0.5s;
+
+  transition-timing-function: ease-in;
+  webkit-transition-timing-function: ease-in;
+}
