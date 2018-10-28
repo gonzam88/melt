@@ -231,3 +231,13 @@ h2 .content, .ui.header .sub.header{
   transition-timing-function: ease-in;
   webkit-transition-timing-function: ease-in;
 }
+
+/* start css magic */
+/* Dont display more than 50 items in queue */
+.queue.item:nth-child(50):after{
+	content:"...";
+}
+.queue.item:nth-child(n+51){
+	display:none;
+}
+/* end css magic */

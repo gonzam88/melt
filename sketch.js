@@ -698,7 +698,7 @@ function WriteConsole(txt, received = false){
   $("#console").append(msg);
   // $("#console").scrollTop($("#console")[0].scrollHeight); // Scroleo para abajo de todo
 
-  if($("#console").children().length > 500){
+  if($("#console").children().length > 200){
     // Limit the amount of console history
     $("#console").children().first().remove();
   }
