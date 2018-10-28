@@ -44,9 +44,9 @@ var statusElement = $("#statusAlert");
 var canvas;
 var motorLineRight, motorLineLeft, motorRightCircle, motorLeftCircle, machineSquare;
 var mouseVector = new Victor(0,0);
-var isSettingGondolaPos = false;
+var isSettingPenPos = false;
 var isSettingNewPenPosition = false;
-var gondolaPositionPixels = new Victor(0,0);
+var penPositionPixels = new Victor(0,0);
 var nextPenPosition = new Victor(0,0);
 var gondolaCircle;
 
@@ -204,9 +204,9 @@ function FabricInit(){
         this.lastPosX = evt.clientX;
         this.lastPosY = evt.clientY;
     }else{
-        if( isSettingGondolaPos){
-        SetGondolaPositionPixels(mouseVector.x, mouseVector.y);
-  		  isSettingGondolaPos = false; // SHould this go here or inside the function SetGondolaPositionPixels ?
+        if( isSettingPenPos){
+        SetpenPositionPixels(mouseVector.x, mouseVector.y);
+  		  isSettingPenPos = false; // SHould this go here or inside the function SetpenPositionPixels ?
 
   	  }else if( isSettingNewPenPosition ){
   		  SetNextPenPositionPixels(mouseVector.x, mouseVector.y);
@@ -245,7 +245,7 @@ function FabricInit(){
       isMouseOverCanvas = true;
     }, function() {
       isMouseOverCanvas = false;
-      UpdatePositionMetadata(gondolaPositionPixels);
+      UpdatePositionMetadata(penPositionPixels);
     }
   );
 
@@ -346,7 +346,7 @@ function UiInit(){
   $('.mypopup').popup();
 
   $("#set-custom-postion").click(function(){
-  	isSettingGondolaPos = true;
+  	isSettingPenPos = true;
   })
 
   $("#control-pen-position").click(function(){
@@ -381,7 +381,14 @@ function UiInit(){
 
   $('#clear-queue').click(function(){
   	machineQueue = [];
+    batchTotal=0;
+    batchDone=0;
+    UpdateBatchPercent();
   	$('#queue').html('');
+  });
+
+  $("#queue-progress").progress({
+    percent: 100
   });
 
 
@@ -415,15 +422,15 @@ function SetMachineDimensionsMM(_w, _h){
   DrawGrid();
 }
 
-function SetGondolaPositionPixels(_x, _y){
-	gondolaPositionPixels.x = _x;
-	gondolaPositionPixels.y = _y;
+function SetpenPositionPixels(_x, _y){
+	penPositionPixels.x = _x;
+	penPositionPixels.y = _y;
 	gondolaCircle.left = _x;
 	gondolaCircle.top = _y;
-	UpdatePositionMetadata(gondolaPositionPixels);
+	UpdatePositionMetadata(penPositionPixels);
 
-	let leftMotorDist = gondolaPositionPixels.distance(leftMotorPositionPixels) *  pxPerStep;
-	let rightMotorDist = gondolaPositionPixels.distance(rightMotorPositionPixels) *  pxPerStep;
+	let leftMotorDist = penPositionPixels.distance(leftMotorPositionPixels) *  pxPerStep;
+	let rightMotorDist = penPositionPixels.distance(rightMotorPositionPixels) *  pxPerStep;
 
 	let cmd = "C09,"+ Math.round(leftMotorDist) +","+ Math.round(rightMotorDist) +",END";
 	SerialSend(cmd);
@@ -431,11 +438,11 @@ function SetGondolaPositionPixels(_x, _y){
 }
 
 function SyncGondolaPosition(_x, _y){
-	gondolaPositionPixels.x = _x;
-	gondolaPositionPixels.y = _y;
+	penPositionPixels.x = _x;
+	penPositionPixels.y = _y;
 	gondolaCircle.left = _x;
 	gondolaCircle.top = _y;
-	UpdatePositionMetadata(gondolaPositionPixels);
+	UpdatePositionMetadata(penPositionPixels);
 }
 
 function  NativeToCartesian(_left, _right){
@@ -454,14 +461,11 @@ function SetNextPenPositionPixels(_x, _y){
 	newPenPositionCircle.top = _y;
 	canvas.renderAll();
 
-	console.log("Next Position: " + nextPenPosition);
-
 	let rightMotorDist = nextPenPosition.distance(rightMotorPositionPixels) *  pxPerStep;
 	let leftMotorDist = nextPenPosition.distance(leftMotorPositionPixels) *  pxPerStep;
 	let cmd = "C17,"+ Math.round(leftMotorDist) +","+ Math.round(rightMotorDist) +",2,END";
 	AddToQueue(cmd);
 	// WriteConsole(cmd);
-	console.log("New Pos: " + cmd);
 }
 
 function UpdatePositionMetadata(vec){
@@ -568,7 +572,10 @@ function gotData() {
 
     case 'READY':
 	  		statusElement.html(statusSuccessIcon);
-			isMachineReady = true;
+			  isMachineReady = true;
+        if(isQueueActive){
+          batchDone ++;
+        }
 	  		break;
 
 		case 'Loaded':
@@ -660,7 +667,7 @@ function gotData() {
   }
   WriteConsole(currentString, true);
   lastReceivedString = currentString;
-}
+} // gotData
 
 function WriteConsole(txt, received = false){
   let icon, clase = "log";
@@ -700,19 +707,40 @@ function hashChanged(h){
 var externalQueueLength = 0;
 function CheckQueue(){
 	// console.log("checking queue");
-	if(isQueueActive && isMachineReady && machineQueue.length > 0){
-		SerialSend( machineQueue.shift() );
-		$('#queue .item').first().remove()
-	}
+  if(isQueueActive && isMachineReady){
+    if(machineQueue.length > 0){
+      SerialSend( machineQueue.shift() );
+  		$('#queue .item').first().remove()
+    }else{
+      // Everybody´s waiting for us, but the queue is empty. I swear it´s the first time this happens :-0
+      batchTotal = 0;
+      batchDone = 0;
+    }
+    UpdateBatchPercent();
+  }
 	setTimeout(CheckQueue, 200);
 }
 
 var lastQueueCmd = "";
+var batchTotal = 0, batchDone = 0, batchPercent = 0;
+
 function AddToQueue(cmd){
   if(cmd == lastQueueCmd) return; // Avoid two equal commands to be sent
 	$("#queue").append("<div class='queue item'><span class='cmd'>"+cmd+"</span><div class='ui divider'></div></div>");
 	machineQueue.push(cmd);
   lastQueueCmd = cmd;
+  batchTotal++;
+  UpdateBatchPercent();
+}
+
+function UpdateBatchPercent(){
+  // TODO: show elapsed time
+  if(batchTotal>0){
+    batchPercent = batchDone / batchTotal * 100;
+    $("#queue-progress").progress({percent: batchPercent});
+  }else{
+    $("#queue-progress").progress({percent: 100});
+  }
 }
 
 function AddPixelCoordToQueue(x,y){
@@ -807,6 +835,12 @@ const Melt = class{
 		AddToQueue("C13,DOWN,END"); // pen down
 	}
 
+  PenPosition(){
+    // returns pen position in mm (converted from penPositionPixels)
+    p = new Victor(penPositionPixels.x * pxToMMFactor, penPositionPixels.y * pxToMMFactor);
+    return p;
+  }
+
 	line(x1, y1, x2, y2){
 		/// <summary>Draws a line from (x1, y1) to (x2, y2). Positions should be set in millimetres. Warning! If called between StartPath() and EndPath(), pen will not be raised when moving to starting coordinate</summary>
 		if( !this.isDrawingPath ){
@@ -828,6 +862,7 @@ const Melt = class{
 
 	ellipse(x, y, r, res = 100){
     res = Math.round(res);
+    if(res < 3) res = 3; // A "circle" cant have less than 3 sides.. though that´s a triangle yo
     this.cachedFirstVx;
     this.PenUp();
 		// I generete an array of points that create the circle

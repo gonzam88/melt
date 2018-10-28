@@ -71,7 +71,7 @@ h2 .content, .ui.header .sub.header{
 #queue{
 	font-family: 'Inconsolata', monospace;
 	margin-bottom: 10px;
-	height: calc(100% - 50px );
+	height: calc(100% - 60px );
 	width: 100%;
 	overflow-y: auto;
   overflow-x: hidden;
@@ -81,6 +81,9 @@ h2 .content, .ui.header .sub.header{
 }
 #content-queue .button{
 	width: 48%;
+}
+#queue-progress{
+  margin-top: 8px;
 }
 
 .log{
