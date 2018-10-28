@@ -215,3 +215,11 @@ h2 .content, .ui.header .sub.header{
 #ws-alert a:hover{
 	text-decoration:underline;
 }
+#codeStatusIcon{
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 999999;
+  color: #BF6169;
+  display: none;
+}

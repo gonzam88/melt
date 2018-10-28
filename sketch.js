@@ -55,6 +55,7 @@ var rightMotorPositionPixels = new Victor(0,0);
 var newPenPositionArrow, newPenPositionCircle;
 var waitingReadyAfterPause = false;
 
+var flask;
 var melt;
 
 $("document").ready(function(){
@@ -62,6 +63,7 @@ $("document").ready(function(){
     MeltInit();
     FabricInit();
     UiInit();
+    codePluginInit();
 
 }); // doc ready
 
@@ -294,21 +296,6 @@ function UiInit(){
     }
   });
 
-
-  // if ("onhashchange" in window) { // event supported?
-  //   window.onhashchange = function () {
-  //       hashChanged(window.location.hash);
-  //   }
-  // } else { // event not supported:
-  //     var storedHash = window.location.hash;
-  //     window.setInterval(function () {
-  //         if (window.location.hash != storedHash) {
-  //             storedHash = window.location.hash;
-  //             hashChanged(storedHash);
-  //         }
-  //     }, 100);
-  // }
-
   var currContent = $("#content-control");
   $(".main-menu-link").click(function(){
     let href = $(this).data("panel");
@@ -398,9 +385,18 @@ function UiInit(){
     percent: 100
   });
 
+  $("#runCodeButton").click(function(){
+    RunCode();
+  })
+
 
 } // ui elements init
 
+function codePluginInit(){
+    flask = new CodeFlask('#myFlask', { language: 'js', lineNumbers: true });
+    flask.updateCode('"use strict";\n');
+
+} // codePluginInit
 
 // Machine functions
 
@@ -749,7 +745,7 @@ function QueueBatchComplete(){
 function FormatBatchElapsed(){
   // Current batch elapsed
   if(millisBatchStarted == null) return;
-  
+
   let elapsed, diff = {};
   if(batchCompleted){
     elapsed = millisBatchEnded;
@@ -907,4 +903,86 @@ const Melt = class{
 	}
 }
 
-// const melt = new Melt();
+var codeError = "";
+var codeStr;
+var jshintOpts = {
+  "asi"           : false,    // Tolerate Automatic Semicolon Insertion (no semicolons).
+ "boss"          : false,    // Tolerate assignments inside if, for & while. Usually conditions & loops are for comparison, not assignments.
+ "debug"         : true,    // Allow debugger statements e.g. browser breakpoints.
+ "eqnull"        : false,    // Tolerate use of `== null`.
+ "evil"          : false,    // Tolerate use of `eval`.
+ "expr"          : false,    // Tolerate `ExpressionStatement` as Programs.
+ "funcscope"     : true,    // Tolerate declarations of variables inside of control structures while accessing them later from the outside.
+ "globalstrict"  : true,    // Allow global "use strict" (also enables 'strict').
+ "iterator"      : false,    // Allow usage of __iterator__ property.
+ "lastsemic"     : false,    // Tolerate missing semicolons when the it is omitted for the last statement in a one-line block.
+ "laxbreak"      : false,    // Tolerate unsafe line breaks e.g. `return [\n] x` without semicolons.
+ "laxcomma"      : false,    // Suppress warnings about comma-first coding style.
+ "loopfunc"      : false,    // Allow functions to be defined within loops.
+ "multistr"      : false,    // Tolerate multi-line strings.
+ "proto"         : false,    // Tolerate __proto__ property. This property is deprecated.
+ "scripturl"     : false,    // Tolerate script-targeted URLs.
+ "smarttabs"     : false,    // Tolerate mixed tabs and spaces when the latter are used for alignment only.
+ "shadow"        : false,    // Allows re-define variables later in code e.g. `var x=1; x=2;`.
+ "sub"           : true,    // Tolerate all forms of subscript notation besides dot notation e.g. `dict['key']` instead of `dict.key`.
+ "supernew"      : false,    // Tolerate `new function () { ... };` and `new Object;`.
+ "validthis"     : true,    // Tolerate strict violations when the code is running in strict mode and you use this in a non-constructor function.
+ "esversion"     : 6,
+ "devel"         : true,
+
+
+};
+var jshintPredef = {
+  "browser"       : true,     // Standard browser globals e.g. `window`, `document`.
+  "couch"         : false,    // Enable globals exposed by CouchDB.
+  "devel"         : true,    // Allow development statements e.g. `console.log();`.
+  "dojo"          : false,    // Enable globals exposed by Dojo Toolkit.
+  "jquery"        : true,    // Enable globals exposed by jQuery JavaScript library.
+  "mootools"      : false,    // Enable globals exposed by MooTools JavaScript framework.
+  "node"          : true,    // Enable globals available when code is running inside of the NodeJS runtime environment.
+  "nonstandard"   : false,    // Define non-standard but widely adopted globals such as escape and unescape.
+  "phantom"       : true,     // Enable globbals exposed by PhantomJS
+  "prototypejs"   : false,    // Enable globals exposed by Prototype JavaScript framework.
+  "rhino"         : false,    // Enable globals available when your code is running inside of the Rhino runtime environment.
+  "wsh"           : false,    // Enable globals available when your code is running as a script for the Windows Script Host.
+  "melt"          : true,
+  "map"           : true,
+};
+
+
+function RunCode(){
+  // TODO: Replace with jshint
+  codeStr = flask.getCode();
+  let error = "";
+  JSHINT(codeStr, jshintOpts, jshintPredef);
+  let resp = JSHINT.data();
+
+  if( resp["errors"] == undefined){
+    // Pased JShint
+    try {
+      $("#codeStatusIcon").hide();
+      eval(codeStr);
+
+    } catch (e) {
+      if (e instanceof SyntaxError) {
+        // didnt pass try catch
+          codeError = e;
+          $("#codeStatusIcon").show();
+          $("#codeStatusIcon").attr("data-html", codeError);
+      }
+    }
+
+  }else{
+    // didnt pass jshint
+    let errMsg = "<ul>";
+    for(let i=0; i < resp.errors.length; i++){
+      errMsg += "<li>Line "+ resp.errors[i].line +": "+ resp.errors[i].reason +"</li>";
+    }
+    errMsg += "</ul>";
+    $("#codeStatusIcon").show();
+    $("#codeStatusIcon").attr("data-html", errMsg);
+
+  }
+
+
+}
