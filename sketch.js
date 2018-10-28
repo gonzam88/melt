@@ -53,6 +53,7 @@ var gondolaCircle;
 var leftMotorPositionPixels = new Victor(0,0);
 var rightMotorPositionPixels = new Victor(0,0);
 var newPenPositionArrow, newPenPositionCircle;
+var waitingReadyAfterPause = false;
 
 var melt;
 
@@ -65,9 +66,6 @@ $("document").ready(function(){
     UiInit();
 
   }
-
-
-
 
 }); // doc ready
 
@@ -372,18 +370,18 @@ function UiInit(){
   $('#pause-queue').click(function(){
   	if(isQueueActive){
   		isQueueActive = false;
+      waitingReadyAfterPause = true;
   		$('#pause-queue').html( '<i class="play icon"></i>Play' );
   	}else{
   		isQueueActive = true;
+      waitingReadyAfterPause = false;
   		$('#pause-queue').html( '<i class="pause icon"></i>Pause' );
   	}
   });
 
   $('#clear-queue').click(function(){
   	machineQueue = [];
-    batchTotal=0;
-    batchDone=0;
-    UpdateBatchPercent();
+    NewQueueBatch();
   	$('#queue').html('');
   });
 
@@ -445,7 +443,7 @@ function SyncGondolaPosition(_x, _y){
 	UpdatePositionMetadata(penPositionPixels);
 }
 
-function  NativeToCartesian(_left, _right){
+function NativeToCartesian(_left, _right){
 	// Math borrowed from original polarcontroller :)  https://github.com/euphy/polargraphcontroller/blob/master/Machine.pde#L339
  	let calcX = (Math.pow(machineWidthSteps, 2) - Math.pow(_right, 2) + Math.pow(_left, 2)) / (machineWidthSteps * 2);
 	let calcY = Math.sqrt( Math.pow(_left, 2) - Math.pow(calcX, 2) );
@@ -573,8 +571,13 @@ function gotData() {
     case 'READY':
 	  		statusElement.html(statusSuccessIcon);
 			  isMachineReady = true;
-        if(isQueueActive){
-          batchDone ++;
+        if(!batchCompleted){
+          if(isQueueActive || waitingReadyAfterPause){
+            waitingReadyAfterPause = false;
+            batchDone ++;
+            if(batchDone >= batchTotal) QueueBatchComplete();
+            UpdateBatchPercent();
+          }
         }
 	  		break;
 
@@ -582,7 +585,6 @@ function gotData() {
 			if(responseWords[1].startsWith("width")){
 				machineWidthMM = parseInt( responseWords[1].split(":")[1] );
 				$("#inputMachineWidth").val(machineWidthMM);
-
 
 			}else if(responseWords[1].startsWith("height")){
 				machineHeightMM = parseInt( responseWords[1].split(":")[1] );
@@ -630,8 +632,6 @@ function gotData() {
 				SetMachineDimensionsMM(machineWidthMM, machineHeightMM);
 			}
 		break;
-
-
   }
 
 	// Now check for cases where data is comma separated
@@ -711,36 +711,62 @@ function CheckQueue(){
     if(machineQueue.length > 0){
       SerialSend( machineQueue.shift() );
   		$('#queue .item').first().remove()
-    }else{
-      // Everybody´s waiting for us, but the queue is empty. I swear it´s the first time this happens :-0
-      batchTotal = 0;
-      batchDone = 0;
     }
-    UpdateBatchPercent();
   }
+  FormatBatchElapsed();
 	setTimeout(CheckQueue, 200);
 }
-
-var lastQueueCmd = "";
-var batchTotal = 0, batchDone = 0, batchPercent = 0;
 
 function AddToQueue(cmd){
   if(cmd == lastQueueCmd) return; // Avoid two equal commands to be sent
 	$("#queue").append("<div class='queue item'><span class='cmd'>"+cmd+"</span><div class='ui divider'></div></div>");
 	machineQueue.push(cmd);
   lastQueueCmd = cmd;
+
+  if(batchCompleted) NewQueueBatch();
   batchTotal++;
   UpdateBatchPercent();
 }
 
+var lastQueueCmd = "";
+var batchTotal = 0, batchDone = 0, batchPercent = 0;
+var millisBatchStarted, millisBatchEnded, batchCompleted = false;
+
 function UpdateBatchPercent(){
   // TODO: show elapsed time
-  if(batchTotal>0){
+  if(batchTotal > 0){
     batchPercent = batchDone / batchTotal * 100;
-    $("#queue-progress").progress({percent: batchPercent});
   }else{
-    $("#queue-progress").progress({percent: 100});
+    batchPercent = 100;
   }
+  $("#queue-progress").progress({percent: batchPercent});
+}
+
+function NewQueueBatch(){
+  batchTotal = 0;
+  batchDone = 0;
+  batchCompleted = false;
+  millisBatchStarted = new Date().getTime();
+}
+function QueueBatchComplete(){
+  batchCompleted = true;
+  millisBatchEnded = new Date().getTime();
+}
+
+function FormatBatchElapsed(){
+  // Current batch elapsed
+  let elapsed, diff = {};
+  if(batchCompleted){
+    elapsed = millisBatchEnded;
+  }else{
+    elapsed = new Date().getTime();
+  }
+  elapsed = (elapsed - millisBatchStarted) / 1000;
+  diff.hours = Math.floor(elapsed / 3600 % 24);
+  diff.minutes = Math.floor(elapsed / 60 % 60);
+  diff.seconds = Math.floor(elapsed % 60);
+  let msg = diff.hours +"h "+ diff.minutes +"m "+ diff.seconds +"s"
+  $("#elapsed-time").html(msg);
 }
 
 function AddPixelCoordToQueue(x,y){
@@ -774,7 +800,7 @@ function DrawGrid(){
        selectable: false
     }
   },
-  gridLen = options.width / options.distance;
+  gridLen = (options.width / options.distance) + 1;
 
   for (var i = 0; i < gridLen; i++) {
       var distance   = (i * options.distance) + offset,
@@ -782,6 +808,8 @@ function DrawGrid(){
         vertical   = new fabric.Line([ + offset, distance, options.width  + offset, distance], options.param);
         canvas.add(horizontal);
         canvas.add(vertical);
+        horizontal.sendToBack();
+        vertical.sendToBack();
         if(i%5 === 0){
             horizontal.set({stroke: '#7a7d82'});
             vertical.set({stroke: '#7a7d82'});
