@@ -378,7 +378,7 @@ function UiInit(){
   	if(isQueueActive){
   		isQueueActive = false;
       waitingReadyAfterPause = true;
-  		$('#pause-queue').html( '<i class="play icon"></i>Play' );
+  		$('#pause-queue').html( '<i class="play icon"></i>Resume' );
   	}else{
   		isQueueActive = true;
       waitingReadyAfterPause = false;
@@ -396,9 +396,31 @@ function UiInit(){
     percent: 100
   });
 
-  $("#runCodeButton").click(function(){
-    RunCode();
+  $("#run-code-button").click(function(){
+	  if(!isRunningCode) CheckCode();
   })
+
+	$(".run-code-updown").click(function(){
+	  if( $(this).children().hasClass("up") ){
+	    codeRepetitions ++;
+	     }else{
+	       if(codeRepetitions>0)codeRepetitions --;
+	  }
+	  refButton();
+	})
+
+	function refButton(){
+	  let txt = "";
+	  if(codeRepetitions== 0){
+	    txt="Draw forever";
+	  }else if(codeRepetitions== 1){
+	  txt="Draw once";
+	}  else{
+	    txt = "Draw "+ codeRepetitions +" times";
+	  }
+	  $("#run-code-button span").html(txt);
+	}
+	refButton();
 
 
 } // ui elements init
@@ -711,7 +733,22 @@ function CheckQueue(){
     if(machineQueue.length > 0){
       SerialSend( machineQueue.shift() );
   		$('#queue .item').first().remove()
-    }
+    }else{
+		// The queue is free!!
+		// Lets give it something to do
+		if(isRunningCode){
+			if(isRunningCodeForever){
+				EvalCode();
+			}else{
+				if(remainingCodeRepetitions == 0){
+					EndedDrawingCode();
+				}else{
+					remainingCodeRepetitions--;
+					EvalCode();
+				}
+			}
+		}
+	}
   }
   FormatBatchElapsed();
 	setTimeout(CheckQueue, 200);
@@ -960,40 +997,73 @@ var jshintPredef = {
   "map"           : true,
 };
 
+var isRunningCode = false;
+var codeRepetitions = 1, remainingCodeRepetitions, isRunningCodeForever = false;
 
-function RunCode(){
-  // TODO: Replace with jshint
-  codeStr = flask.getCode();
-  let error = "";
-  JSHINT(codeStr, jshintOpts, jshintPredef);
-  let resp = JSHINT.data();
+function CheckCode(){
+	codeStr = flask.getCode();
+	let error = "";
+	JSHINT(codeStr, jshintOpts, jshintPredef);
+	let resp = JSHINT.data();
 
-  if( resp["errors"] == undefined){
-    // Pased JShint
-    try {
-      $("#codeStatusIcon").hide();
-      eval(codeStr);
+ 	if( resp["errors"] == undefined){
+    // Passed JShint
+	    try { // This is a second test
+			StartedDrawingCode()
+			EvalCode()
+	    } catch (e) {
+	      if (e instanceof SyntaxError) {
+	        // didnt pass try catch
+	          codeError = e;
+	          $("#codeStatusIcon").show();
+	          $("#codeStatusIcon").attr("data-html", codeError);
+	      }
+	    }
+	  }else{
+	    // didnt pass jshint
+	    let errMsg = "<ul>";
+	    for(let i=0; i < resp.errors.length; i++){
+	      errMsg += "<li>Line "+ resp.errors[i].line +": "+ resp.errors[i].reason +"</li>";
+	    }
+	    errMsg += "</ul>";
+	    $("#codeStatusIcon").show();
+	    $("#codeStatusIcon").attr("data-html", errMsg);
+  	}
+}
 
-    } catch (e) {
-      if (e instanceof SyntaxError) {
-        // didnt pass try catch
-          codeError = e;
-          $("#codeStatusIcon").show();
-          $("#codeStatusIcon").attr("data-html", codeError);
-      }
-    }
+function EvalCode(){
+	eval(codeStr); // Actually interprets string as javascript
+	console.log('code evaluated');
+	$("#remaining-repetitions span").html(remainingCodeRepetitions);
+	console
+	if(machineQueue.length == 0){
+		// the code executed succesfully but theres nothing on the queue
+		EndedDrawingCode();
+	}
+}
 
-  }else{
-    // didnt pass jshint
-    let errMsg = "<ul>";
-    for(let i=0; i < resp.errors.length; i++){
-      errMsg += "<li>Line "+ resp.errors[i].line +": "+ resp.errors[i].reason +"</li>";
-    }
-    errMsg += "</ul>";
-    $("#codeStatusIcon").show();
-    $("#codeStatusIcon").attr("data-html", errMsg);
-
-  }
-
-
+function StartedDrawingCode(){
+	if(codeRepetitions == 0){
+		isRunningCodeForever = true;
+		$("#stop-code-loop").show();
+	}else if(codeRepetitions > 1){
+		remainingCodeRepetitions = codeRepetitions;
+		$("#remaining-repetitions").show();
+		$("#remaining-repetitions span").html(remainingCodeRepetitions);
+	}else{
+		// only once
+		remainingCodeRepetitions = 0;
+	}
+	isRunningCode = true;
+	$("#codeStatusIcon").hide();
+	$("#run-code-button").addClass("disabled");
+	$(".run-code-updown").addClass("disabled");
+}
+function EndedDrawingCode(){
+	isRunningCode = false;
+	isRunningCodeForever = false;
+	$("#run-code-button").removeClass("disabled");
+	$(".run-code-updown").removeClass("disabled");
+	$("#stop-code-loop").hide();
+	$("#remaining-repetitions").hide();
 }

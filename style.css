@@ -217,8 +217,8 @@ h2 .content, .ui.header .sub.header{
 }
 #codeStatusIcon{
   position: absolute;
-  top: 10px;
-  right: 10px;
+  bottom: 10px;
+  right: 0px;
   z-index: 999999;
   color: #BF6169;
   display: none;
@@ -241,3 +241,23 @@ h2 .content, .ui.header .sub.header{
 	display:none;
 }
 /* end css magic */
+
+#run-code-container{
+	width: calc(100% + 2px);
+    right: 1px;
+}
+#run-code-button{
+	width: 100%;
+	padding: 1.2em 0.78571429em 1.2em;
+	border-radius: 0px 4px 4px 4px;
+	margin-right: 2px !important;
+}
+.run-code-updown{
+	padding:4px !important;
+}
+.run-code-updown i{
+	margin: 0px !important
+}
+#remaining-repetitions, #stop-code-loop{
+	display: none;
+}
