@@ -63,14 +63,12 @@
         <div id="" class="dashboardElement">
 
             <div class="ui secondary pointing five item menu">
-	                <a href="#control" class="active item"><i class="gamepad icon"></i></a>
-	                <a href="#tools" class="item"><i class="idea icon"></i></a>
-	                <a href="#console" class="item"><i class="terminal icon"></i></a>
-									<a href="#queue" class="item"><i class="rocket icon"></i></a>
-									<a  href="#settings" class="ui item"><i class="settings icon"></i></a>
-
+              <a data-panel="control" class="active item main-menu-link"><i class="gamepad icon"></i></a>
+              <a data-panel="tools" class="item main-menu-link"><i class="idea icon"></i></a>
+              <a data-panel="console" class="item main-menu-link"><i class="terminal icon"></i></a>
+							<a data-panel="queue" class="item main-menu-link"><i class="rocket icon"></i></a>
+							<a data-panel="settings" class="ui item main-menu-link"><i class="settings icon"></i></a>
             </div>
-
 
               <div class="dashboardMenuContent">
 
@@ -319,6 +317,9 @@
   <!-- p5 libraries -->
   <script src="libraries/p5.dom.js" type="text/javascript"></script>
   <script src="libraries/p5.serialport.js" type="text/javascript"></script>
+
+	<!-- Code Flask -->
+	<script src="libraries/codeflask-1.2.1.min.js" type="text/javascript"></script>
 
   <!-- victor.js libraries (vector math) -->
   <script src="libraries/victor.min.js" type="text/javascript"></script>

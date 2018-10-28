@@ -58,14 +58,10 @@ var waitingReadyAfterPause = false;
 var melt;
 
 $("document").ready(function(){
-  if( window.location.hash != ""){
-		window.location.href = location.href.replace(location.hash,"") ;
-	}else{
+
     MeltInit();
     FabricInit();
     UiInit();
-
-  }
 
 }); // doc ready
 
@@ -299,19 +295,32 @@ function UiInit(){
   });
 
 
-  if ("onhashchange" in window) { // event supported?
-    window.onhashchange = function () {
-        hashChanged(window.location.hash);
+  // if ("onhashchange" in window) { // event supported?
+  //   window.onhashchange = function () {
+  //       hashChanged(window.location.hash);
+  //   }
+  // } else { // event not supported:
+  //     var storedHash = window.location.hash;
+  //     window.setInterval(function () {
+  //         if (window.location.hash != storedHash) {
+  //             storedHash = window.location.hash;
+  //             hashChanged(storedHash);
+  //         }
+  //     }, 100);
+  // }
+
+  var currContent = $("#content-control");
+  $(".main-menu-link").click(function(){
+    let href = $(this).data("panel");
+    let newContent = $("#content-"+href);
+    // if( currContent != newContent ){
+    currContent.hide();
+    newContent.show();
+    if(href == "console"){
+      $("#console").scrollTop($("#console")[0].scrollHeight); // Scroleo para abajo de todo
     }
-  } else { // event not supported:
-      var storedHash = window.location.hash;
-      window.setInterval(function () {
-          if (window.location.hash != storedHash) {
-              storedHash = window.location.hash;
-              hashChanged(storedHash);
-          }
-      }, 100);
-  }
+    currContent = newContent;
+  })
 
 
   $('.ui.menu')
@@ -688,22 +697,6 @@ function WriteConsole(txt, received = false){
   }
 }
 
-var currContent = $("#content-control");
-
-function hashChanged(h){
-  h = h.substr(1);
-  let newContent = $("#content-"+h);
-  // if( currContent != newContent ){
-  currContent.hide();
-  newContent.show();
-  if(h == "console"){
-    $("#console").scrollTop($("#console")[0].scrollHeight); // Scroleo para abajo de todo
-  }
-  currContent = newContent;
-  // }
-
-}
-
 var externalQueueLength = 0;
 function CheckQueue(){
 	// console.log("checking queue");
@@ -755,6 +748,8 @@ function QueueBatchComplete(){
 
 function FormatBatchElapsed(){
   // Current batch elapsed
+  if(millisBatchStarted == null) return;
+  
   let elapsed, diff = {};
   if(batchCompleted){
     elapsed = millisBatchEnded;
