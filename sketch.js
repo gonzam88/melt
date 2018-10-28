@@ -288,13 +288,13 @@ function UiInit(){
       SerialSend(msg);
       // WriteConsole(msg, false);
       $("#consoleInput").val(""); // Vacío el input
-      lastSentCmd = msg;
+      lastSentConsoleCmd = msg;
 
     }else if (code==38||code==104) {
       // Up arrow
       e.preventDefault();
-      if(lastSentCmd != ""){
-        $("#consoleInput").val( lastSentCmd );
+      if(lastSentConsoleCmd != ""){
+        $("#consoleInput").val( lastSentConsoleCmd );
       }
 
     }
@@ -533,7 +533,7 @@ function p(txt){
 }
 
 var lastReceivedString = "";
-var lastSentCmd = ""; // TODO hacer de esto un array
+var lastSentConsoleCmd = ""; // TODO hacer de esto un array
 
 function SerialSend(cmd){
   serial.write(cmd + '\n');
@@ -707,9 +707,12 @@ function CheckQueue(){
 	setTimeout(CheckQueue, 200);
 }
 
+var lastQueueCmd = "";
 function AddToQueue(cmd){
+  if(cmd == lastQueueCmd) return; // Avoid two equal commands to be sent
 	$("#queue").append("<div class='queue item'><span class='cmd'>"+cmd+"</span><div class='ui divider'></div></div>");
 	machineQueue.push(cmd);
+  lastQueueCmd = cmd;
 }
 
 function AddPixelCoordToQueue(x,y){
@@ -722,7 +725,7 @@ function AddPixelCoordToQueue(x,y){
 }
 
 function AddMMCoordToQueue(x,y){
-	let pos = new Victor(x *  mmPerStep, y *  mmPerStep);
+	let pos = new Victor(x *  stepsPerMM, y *  stepsPerMM);
 	let leftMotorDist = pos.distance(leftMotorPositionSteps);
 	let rightMotorDist = pos.distance(rightMotorPositionSteps);
 
@@ -824,23 +827,27 @@ const Melt = class{
 	}
 
 	ellipse(x, y, r, res = 100){
+    res = parseInt(res);
 		// First I generete an array of points that create the circle
 		this.circleVectors = [];
 	    for (let i = 0; i < res; i++) {
 	        let angle = map(i, 0, res, 0, 2 * Math.PI);
 	        let posX = (r * Math.cos(angle) + x);
 	        let posY = (r * Math.sin(angle) + y);
-			this.temp = new Victor(posX, posY);
+			    this.temp = new Victor(posX, posY);
 	        this.circleVectors.push(this.temp);
 	    }
 
-		this.PenUp();
-
 		for(let i = 0; i < this.circleVectors.length; i++){
+      if(i == 0){
+        this.PenUp();
+      }else if(i == 1){
+        this.PenDown();
+      }
 			AddMMCoordToQueue(this.circleVectors[i].x, this.circleVectors[i].y);
 		}
 
-		this.PenDown();
+		this.PenUp();
 	}
 }
 
