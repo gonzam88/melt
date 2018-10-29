@@ -26,6 +26,11 @@ h2 .content, .ui.header .sub.header{
   height: calc(100vh - 100px);
   padding: 10px;
 }
+#tools{
+    height: calc(100% - 10px);
+    overflow-y: auto;
+    overflow-x: hidden;
+}
 #console{
   /* width: 300px;
   height: 400px; */
@@ -58,7 +63,6 @@ h2 .content, .ui.header .sub.header{
   border-radius: 5px;
 }
 #consoleInput:focus {
-
     border: none;
 }
 #console::-webkit-scrollbar-corner{
@@ -74,7 +78,7 @@ h2 .content, .ui.header .sub.header{
 	height: calc(100% - 70px );
 	width: 100%;
 	overflow-y: auto;
-  overflow-x: hidden;
+    overflow-x: hidden;
 }
 #queue .item:last-of-type .divider{
 	display: none
@@ -189,6 +193,11 @@ h2 .content, .ui.header .sub.header{
     pointer-events: none;
 }
 
+#content-tools{
+    overflow-y: auto;
+    overflow-x: hidden;
+    height: 100%;
+}
 
 #content-queue, #content-console, #content-tools, #content-settings{
 	display: none;
@@ -242,6 +251,18 @@ h2 .content, .ui.header .sub.header{
 }
 /* end css magic */
 
+
+#editor {
+    margin: 0;
+    position: absolute;
+    top: 37px;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    font-family: 'Inconsolata', monospace;
+    font-size: 16px;
+}
+
 #run-code-container{
 	width: calc(100% + 2px);
     right: 1px;
@@ -258,6 +279,31 @@ h2 .content, .ui.header .sub.header{
 .run-code-updown i{
 	margin: 0px !important
 }
-#remaining-repetitions, #stop-code-loop{
+#remaining-repetitions, #stop-code-loop, #run-code-check-error{
 	display: none;
+}
+
+/* Editor error */
+.ace_gutter-cell.ace_error, .ace_gutter-cell.ace_info{
+    background-image: none;
+}
+.ace_gutter-cell.ace_error::before{
+    font-family: Icons;
+    content: "\f06d";
+    color: #BF6169;
+    position: relative;
+    left: -5px;
+    margin-left: -200px;
+}
+.ace_gutter-cell.ace_info::before{
+    font-family: Icons;
+    content: "\f129";
+    color: #6F6F6F;
+    position: relative;
+    left: -7px;
+    margin-left: -200px;
+}
+#editor-container{
+     display: none;
+     margin-bottom: 10px;
 }

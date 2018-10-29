@@ -300,6 +300,7 @@ function UiInit(){
   currContent = $("#content-control");
 
   $(".main-menu-link").click(function(){
+
     let href = $(this).data("panel");
     let newContent = $("#content-"+href);
     // if( currContent != newContent ){
@@ -307,15 +308,16 @@ function UiInit(){
     newContent.show();
     if(href == "console"){
       $("#console").scrollTop($("#console")[0].scrollHeight); // Scroleo para abajo de todo
-    }
 
-    if( href == "tools"){
-       $("#leftColumn").removeClass("six wide column").addClass("eight wide column");
-       $("#rightColumn").removeClass("ten wide column").addClass("eight wide column");
-    }else{
-        $("#leftColumn").removeClass("eight wide column").addClass("six wide column");
-        $("#rightColumn").removeClass("eight wide column").addClass("ten wide column");
-    }
+      }else if(href == "tools"){
+        ExitEditorMode();  
+      }
+
+    // if( $("#leftColumn").hasClass("six wide column")){
+    //     // Resize columns
+    //     $("#leftColumn").removeClass("eight wide column").addClass("six wide column");
+    //     $("#rightColumn").removeClass("eight wide column").addClass("ten wide column");
+    // }
 
     currContent = newContent;
   })
@@ -397,7 +399,7 @@ function UiInit(){
   });
 
   $("#run-code-button").click(function(){
-	  if(!isRunningCode) CheckCode();
+      if(!isRunningCode) CheckCode();
   })
 
 	$(".run-code-updown").click(function(){
@@ -422,12 +424,72 @@ function UiInit(){
 	}
 	refButton();
 
+    var snippets = {
+        line: "melt.line(x1, y1, x2, y2);",
+        ellipse: "melt.ellipse(x, y, radio);",
+        shape: "melt.beginShape()\n\// Your lines\n\melt.endShape();",
+        penposition: "(PenPosition().x, PenPosition().y)",
+    }
+    $(".codeTools").click(function(){
+        let tool = $(this).data("toolname");
+        let action = $(this).data("toolaction");
+        let snippet = $(this).data("toolsnippet");
+        switch(action){
+            case "insert":
+                editor.session.insert(editor.getCursorPosition(), snippets[tool]);
+            break;
+        }
+        editor.focus()
+    })
+
+    $("#reveal-code").click(function(){
+        EnterEditorMode();
+    })
+
+    function EnterEditorMode(){
+        $("#editor-container").slideDown();
+        $("#tools-buttons").hide();
+    }
+    function ExitEditorMode(){
+        $("#tools-buttons").slideDown();
+        $("#editor-container").hide();
+    }
 
 } // ui elements init
 
+var editor, session, scriptCode;
+
 function codePluginInit(){
-    flask = new CodeFlask('#myFlask', { language: 'js', lineNumbers: true });
-    flask.updateCode('"use strict";\n');
+    // flask = new CodeFlask('#myFlask', { language: 'js', lineNumbers: true });
+    // flask.updateCode('"use strict";\n');
+    // trigger extension
+    scriptCode = localStorage["scriptCode"];
+
+    ace.require("ace/ext/language_tools");
+    editor = ace.edit("editor");
+    editor.setTheme("ace/theme/tomorrow");
+    // enable autocompletion and snippets
+    editor.setOptions({
+        enableBasicAutocompletion: true,
+        enableSnippets: true,
+        enableLiveAutocompletion: false
+    });
+    session = editor.getSession();
+    if(scriptCode != undefined){
+        session.setValue(scriptCode);
+    }
+	session.setMode('ace/mode/javascript');
+	session.setUseSoftTabs(true);
+	session.setTabSize(4);
+
+
+    session.on('change', function() {
+    	// if theres no errors, save to localStorage
+        if(session.getAnnotations().length == 0){
+            let scriptCode = editor.getValue();
+        	localStorage["scriptCode"] = scriptCode;
+        }
+	});
 
 } // codePluginInit
 
@@ -564,7 +626,6 @@ function gotOpen() {
 
 // Ut oh, here is an error, let's log it
 function gotError(theerror) {
-	console.log(theerror);
 	statusElement.html(statusErrorIcon);
 }
 
@@ -953,82 +1014,31 @@ const Melt = class{
 
 var codeError = "";
 var codeStr;
-var jshintOpts = {
-  "asi"           : false,    // Tolerate Automatic Semicolon Insertion (no semicolons).
- "boss"          : false,    // Tolerate assignments inside if, for & while. Usually conditions & loops are for comparison, not assignments.
- "debug"         : true,    // Allow debugger statements e.g. browser breakpoints.
- "eqnull"        : false,    // Tolerate use of `== null`.
- "evil"          : false,    // Tolerate use of `eval`.
- "expr"          : false,    // Tolerate `ExpressionStatement` as Programs.
- "funcscope"     : true,    // Tolerate declarations of variables inside of control structures while accessing them later from the outside.
- "globalstrict"  : true,    // Allow global "use strict" (also enables 'strict').
- "iterator"      : false,    // Allow usage of __iterator__ property.
- "lastsemic"     : false,    // Tolerate missing semicolons when the it is omitted for the last statement in a one-line block.
- "laxbreak"      : false,    // Tolerate unsafe line breaks e.g. `return [\n] x` without semicolons.
- "laxcomma"      : false,    // Suppress warnings about comma-first coding style.
- "loopfunc"      : false,    // Allow functions to be defined within loops.
- "multistr"      : false,    // Tolerate multi-line strings.
- "proto"         : false,    // Tolerate __proto__ property. This property is deprecated.
- "scripturl"     : false,    // Tolerate script-targeted URLs.
- "smarttabs"     : false,    // Tolerate mixed tabs and spaces when the latter are used for alignment only.
- "shadow"        : false,    // Allows re-define variables later in code e.g. `var x=1; x=2;`.
- "sub"           : true,    // Tolerate all forms of subscript notation besides dot notation e.g. `dict['key']` instead of `dict.key`.
- "supernew"      : false,    // Tolerate `new function () { ... };` and `new Object;`.
- "validthis"     : true,    // Tolerate strict violations when the code is running in strict mode and you use this in a non-constructor function.
- "esversion"     : 6,
- "devel"         : true,
-
-
-};
-var jshintPredef = {
-  "browser"       : true,     // Standard browser globals e.g. `window`, `document`.
-  "couch"         : false,    // Enable globals exposed by CouchDB.
-  "devel"         : true,    // Allow development statements e.g. `console.log();`.
-  "dojo"          : false,    // Enable globals exposed by Dojo Toolkit.
-  "jquery"        : true,    // Enable globals exposed by jQuery JavaScript library.
-  "mootools"      : false,    // Enable globals exposed by MooTools JavaScript framework.
-  "node"          : true,    // Enable globals available when code is running inside of the NodeJS runtime environment.
-  "nonstandard"   : false,    // Define non-standard but widely adopted globals such as escape and unescape.
-  "phantom"       : true,     // Enable globbals exposed by PhantomJS
-  "prototypejs"   : false,    // Enable globals exposed by Prototype JavaScript framework.
-  "rhino"         : false,    // Enable globals available when your code is running inside of the Rhino runtime environment.
-  "wsh"           : false,    // Enable globals available when your code is running as a script for the Windows Script Host.
-  "melt"          : true,
-  "map"           : true,
-};
-
 var isRunningCode = false;
 var codeRepetitions = 1, remainingCodeRepetitions, isRunningCodeForever = false;
 
 function CheckCode(){
-	codeStr = flask.getCode();
-	let error = "";
-	JSHINT(codeStr, jshintOpts, jshintPredef);
-	let resp = JSHINT.data();
 
- 	if( resp["errors"] == undefined){
-    // Passed JShint
-	    try { // This is a second test
-			StartedDrawingCode()
-			EvalCode()
-	    } catch (e) {
-	      if (e instanceof SyntaxError) {
-	        // didnt pass try catch
-	          codeError = e;
-	          $("#codeStatusIcon").show();
-	          $("#codeStatusIcon").attr("data-html", codeError);
-	      }
-	    }
-	  }else{
-	    // didnt pass jshint
-	    let errMsg = "<ul>";
-	    for(let i=0; i < resp.errors.length; i++){
-	      errMsg += "<li>Line "+ resp.errors[i].line +": "+ resp.errors[i].reason +"</li>";
-	    }
-	    errMsg += "</ul>";
-	    $("#codeStatusIcon").show();
-	    $("#codeStatusIcon").attr("data-html", errMsg);
-  	}
+    if(session.getAnnotations().length == 0){
+        codeStr = editor.getValue();
+
+
+        try { // This is a second test
+            StartedDrawingCode()
+            EvalCode()
+        } catch (e) {
+          if (e instanceof SyntaxError) {
+            // didnt pass try catch
+              codeError = e;
+              delay = 4000;
+              $("#run-code-check-error span").html(codeError).delay(delay).html("");
+              $("#run-code-check-error").show(0).delay(delay).hide(0);
+          }
+        }
+
+    }else{
+        $("#run-code-check-error").show(0).delay(2000).hide(0);
+    }
 }
 
 function EvalCode(){
