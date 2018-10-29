@@ -199,7 +199,7 @@ h2 .content, .ui.header .sub.header{
     height: 100%;
 }
 
-#content-queue, #content-console, #content-tools, #content-settings{
+#content-queue, #content-console, #content-tools, #content-settings, #keyboard-control-container{
 	display: none;
 }
 #connected_to{
@@ -306,4 +306,21 @@ h2 .content, .ui.header .sub.header{
 #editor-container{
      display: none;
      margin-bottom: 10px;
+}
+
+#keyboard-control-container .labeled {
+    width: calc(33% - 35px);
+    margin-right: 35px;
+}
+#keyboard-control-container .labeled:last-of-type{
+     margin-right: 0px;
+}
+#keyboard-control-container .label{
+    font-size: 10px;
+    width: 35px;
+    text-align: center;
+    padding: 12px 0px;
+}
+.activeToggle{
+    background-color: #AE9AAA !important;
 }

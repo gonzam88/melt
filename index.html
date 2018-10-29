@@ -77,35 +77,33 @@
                 <div id="content-control">
                   <div class="ui fluid vertical labeled icon buttons">
 
-                    <button class="ui button" id="set-home-postion">
+                    <button class="ui button deactivateToggle disabled" id="set-home-postion">
                       <i class="heart icon"></i>Set Home Position
                     </button>
 
-                    <button class="ui  button" id="set-custom-postion">
+                    <button class="ui button myToggle" id="set-custom-postion">
                       <i class="map icon"></i>Set Custom Postion
                     </button>
 
-										<button class="ui button" id="control-pen-position">
+					<button class="ui button myToggle" id="control-pen-position">
                       <i class="bug icon"></i>Control Pen Position
                     </button>
 
-                    <button class="ui button" id="return-home">
+                    <button class="ui button deactivateToggle disabled" id="return-home">
                       <i class="undo icon"></i>Return Home
                     </button>
 
-                    <button class="ui button mypopup" id="pen-lift" data-html="<div class='header'>Pen Lift</div><div class='content'><pre>C14,UP,END</pre>Moves the pen lift servo motor into the up, raised, or lifted position. The parameter behaves in the same way as C13.</div>">
+                    <button class="ui button mypopup deactivateToggle" id="pen-lift" data-html="<div class='header'>Pen Lift</div><div class='content'><pre>C14,UP,END</pre>Moves the pen lift servo motor into the up, raised, or lifted position. The parameter behaves in the same way as C13.</div>">
                       <i class="pencil icon"></i>Pen Lift
                     </button>
 
-                    <button class="ui button mypopup" id="pen-drop" data-html="<div class='header'>Pen Drop</div><div class='content'><pre>C13,DOWN,END</pre>oves the pen lift servo motor into the down, lowered, or drawing position, with the pen tip against the page. The machine has a set up position saved in EEPROM, but given an integer parameter, it moves the servo to that position instead, and will use that position as up until the machine is next reset - even if it is not stated explicitly on subsequent C13 calls. Use C45 to save specific lift servo positions to EEPROM.</div>">
+                    <button class="ui button mypopup deactivateToggle" id="pen-drop" data-html="<div class='header'>Pen Drop</div><div class='content'><pre>C13,DOWN,END</pre>oves the pen lift servo motor into the down, lowered, or drawing position, with the pen tip against the page. The machine has a set up position saved in EEPROM, but given an integer parameter, it moves the servo to that position instead, and will use that position as up until the machine is next reset - even if it is not stated explicitly on subsequent C13 calls. Use C45 to save specific lift servo positions to EEPROM.</div>">
                       <i class="map pin icon"></i>Pen Drop
                     </button>
 
 
 
                   </div>
-
-
                 </div>
 
                 <!-- TOOLS -->
@@ -150,14 +148,14 @@
 
 						<div class="ui fluid vertical labeled icon buttons">
 							<!-- Free Draw -->
-							<button class="ui button" id="tools-free-draw">
+							<button class="ui button myToggle" id="tools-free-draw">
 								<i class="paint brush icon"></i>Free Drawing
 						  	</button>
 
 
 
 							<!-- code -->
-							<button class="ui button" id="reveal-code">
+							<button class="ui button deactivateToggle" id="reveal-code">
 								<i class="code icon"></i>Code
 						  	</button>
 
@@ -165,14 +163,46 @@
 
 
 							<!-- move -->
-							<button class="ui button" id="keyboard-control">
+							<button class="ui button myToggle" id="keyboard-control">
 								<i class="keyboard icon"></i> Keyboard Control
 						  	</button>
 
 						</div><!-- fluid buttons -->
 
+
+						<div id="keyboard-control-container">
+							<!-- <div class="ui segment"> -->
+
+								<h4>Steps</h4>
+
+								<div class="ui right labeled input">
+								  <input type="number" id="keyboard-input-mm">
+								  <div class="ui basic label">
+								    mm
+								  </div>
+								</div>
+
+								<div class="ui right labeled input">
+								  <input type="number" id="keyboard-input-px">
+								  <div class="ui basic label">
+								    px
+								  </div>
+								</div>
+
+								<div class="ui right labeled input">
+								  <input type="number" id="keyboard-input-steps">
+								  <div class="ui basic label">
+								    steps
+								  </div>
+								</div>
+
+							<!-- </div> -->
+						</div>
+
+
 					</div><!-- tools buttons -->
             	</div><!-- content-tools -->
+
 
 
                 <!-- CONSOLA -->
@@ -188,18 +218,18 @@
                 <div id="content-queue">
                   <div id="queue"></div>
 
-								  <a id="pause-queue" class="ui labeled icon button"><i class="pause icon"></i>Pause</a>
+					  <a id="pause-queue" class="ui labeled icon button"><i class="pause icon"></i>Pause</a>
 
-								  <a id="clear-queue" class="ui labeled icon button"><i class="trash icon"></i>Clear</a>
+					  <a id="clear-queue" class="ui labeled icon button"><i class="trash icon"></i>Clear</a>
 
-									<div id="queue-progress" class="ui small teal progress mypopup"  data-html="">
-									  <div class="bar">
-											<!-- <div class="progress"></div> --> <!-- uncommenting this would overlay the percent numer -->
-										</div>
-									</div><!-- progress bar -->
-									<div id="elapsed-time"></div>
+						<div id="queue-progress" class="ui small teal progress mypopup"  data-html="">
+						  <div class="bar">
+								<!-- <div class="progress"></div> --> <!-- uncommenting this would overlay the percent numer -->
+							</div>
+						</div><!-- progress bar -->
+						<div id="elapsed-time"></div>
 
-								</div>
+					</div>
 
 
               <!-- SETTINGS -->

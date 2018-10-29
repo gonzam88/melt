@@ -30,22 +30,22 @@ var machineQueue = [];
 var mmToPxFactor = 0.25;
 var pxToMMFactor = 4;
 var pxPerStep, stepPerPx;
-
 var leftDistRevs = 0, rightDistRevs = 0, leftDistMM = 0, rightDistMM = 0;
-
 var syncedLeft, syncedRight;
-
 
 var statusErrorIcon = '<i class="statuserror small exclamation circle icon"></i>';
 var statusSuccessIcon = '<i class="statusok small check circle icon"></i>';
 var statusWorkingIcon = '<i class="statusworking notched circle loading icon"></i>';
 var statusElement = $("#statusAlert");
+var currToggleEl;
 
 var canvas;
 var motorLineRight, motorLineLeft, motorRightCircle, motorLeftCircle, machineSquare;
 var mouseVector = new Victor(0,0);
 var isSettingPenPos = false;
 var isSettingNewPenPosition = false;
+var isKeyboardControlling = false;
+var keyboardControlDeltaPx  = 2.5;
 var penPositionPixels = new Victor(0,0);
 var nextPenPosition = new Victor(0,0);
 var gondolaCircle;
@@ -60,7 +60,9 @@ var flask;
 var melt;
 
 $("document").ready(function(){
-
+// *************************
+// *  Call Main Functions  *
+// *************************
     MeltInit();
     FabricInit();
     UiInit();
@@ -204,10 +206,10 @@ function FabricInit(){
         if( isSettingPenPos){
         SetpenPositionPixels(mouseVector.x, mouseVector.y);
   		  isSettingPenPos = false; // SHould this go here or inside the function SetpenPositionPixels ?
-
+          DeactivateToggles();
   	  }else if( isSettingNewPenPosition ){
   		  SetNextPenPositionPixels(mouseVector.x, mouseVector.y);
-  		  isSettingNewPenPosition = false;
+  		  // isSettingNewPenPosition = false;
   	  }
     }
   });
@@ -247,7 +249,7 @@ function FabricInit(){
   );
 
   canvas.on('path:created', function(e){
-    canvas.isDrawingMode = false;
+    // canvas.isDrawingMode = false;
     var myPath = e.path;
       // console.log(myPath);
   	let points = myPath.path;
@@ -273,6 +275,7 @@ function FabricInit(){
 } // fabric init
 
 function UiInit(){
+
   // Input console
   $("#consoleInput").keyup(function(e){
     let code = e.which; // recommended to use e.which, it's normalized across browsers
@@ -310,7 +313,7 @@ function UiInit(){
       $("#console").scrollTop($("#console")[0].scrollHeight); // Scroleo para abajo de todo
 
       }else if(href == "tools"){
-        ExitEditorMode();  
+        ExitEditorMode();
       }
 
     // if( $("#leftColumn").hasClass("six wide column")){
@@ -323,15 +326,15 @@ function UiInit(){
   })
 
 
-  $('.ui.menu')
-  .on('click', '.item', function() {
-    if(!$(this).hasClass('dropdown')) {
-      $(this)
-        .addClass('active')
-        .siblings('.item')
-          .removeClass('active');
-    }
-  });
+      $('.ui.menu')
+      .on('click', '.item', function() {
+        if(!$(this).hasClass('dropdown')) {
+          $(this)
+            .addClass('active')
+            .siblings('.item')
+              .removeClass('active');
+        }
+      });
 
   $("#serial_connections").on("click", ".button", function(){
     if(serial.isConnected()){
@@ -356,9 +359,9 @@ function UiInit(){
   	isSettingPenPos = true;
   })
 
-  $("#control-pen-position").click(function(){
-  	isSettingNewPenPosition = true;
-  })
+  // $("#control-pen-position").click(function(){
+  // 	isSettingNewPenPosition = true;
+  // })
 
   $("#pen-lift").click(function(){
   	SerialSend("C14,UP,END");
@@ -368,13 +371,13 @@ function UiInit(){
   	SerialSend("C13,DOWN,END");
   })
 
-  $('#tools-free-draw').click(function(){
-  	if(canvas.isDrawingMode){
-  		canvas.isDrawingMode = false;
-  	}else{
-  		canvas.isDrawingMode = true;
-  	}
-  });
+  // $('#tools-free-draw').click(function(){
+  // 	if(canvas.isDrawingMode){
+  // 		canvas.isDrawingMode = false;
+  // 	}else{
+  // 		canvas.isDrawingMode = true;
+  // 	}
+  // });
 
   $('#pause-queue').click(function(){
   	if(isQueueActive){
@@ -427,8 +430,8 @@ function UiInit(){
     var snippets = {
         line: "melt.line(x1, y1, x2, y2);",
         ellipse: "melt.ellipse(x, y, radio);",
-        shape: "melt.beginShape()\n\// Your lines\n\melt.endShape();",
-        penposition: "(PenPosition().x, PenPosition().y)",
+        shape: "melt.beginShape();\n\// Your vertices\n\melt.endShape();",
+        penposition: "(PenPosition().x, PenPosition().y);",
     }
     $(".codeTools").click(function(){
         let tool = $(this).data("toolname");
@@ -454,6 +457,119 @@ function UiInit(){
         $("#tools-buttons").slideDown();
         $("#editor-container").hide();
     }
+
+
+    // Custom toggle callback implementation
+    $(".myToggle").click(function(){
+        if(currToggleEl){
+            if( $(this).attr("id") == $(currToggleEl).attr("id") ){
+                // Deselect current toggle
+                currToggleEl.trigger("toggleDeselect");
+                currToggleEl.removeClass("activeToggle");
+                currToggleEl = "";
+            }else{
+                // Deselect prev toggle
+                currToggleEl.trigger("toggleDeselect");
+                currToggleEl.removeClass("activeToggle");
+
+                // Select the new toggle
+                currToggleEl = $(this);
+                currToggleEl.trigger("toggleSelect");
+                currToggleEl.addClass("activeToggle");
+            }
+        }else{
+            // First toggle to be selected
+            currToggleEl = $(this);
+            currToggleEl.trigger("toggleSelect");
+            currToggleEl.addClass("activeToggle");
+        }
+    });
+
+    $(".deactivateToggle").click(function(){
+        DeactivateToggles();
+    });
+
+    function DeactivateToggles(){
+        if(currToggleEl){
+            // Deselect current toggle
+            currToggleEl.trigger("toggleDeselect");
+            currToggleEl.removeClass("activeToggle");
+            currToggleEl = "";
+        }
+    }
+
+    // Setting the callbacks to their specific actions
+    $("#tools-free-draw").on("toggleSelect", function(){
+        canvas.isDrawingMode = true;
+    })
+    $("#tools-free-draw").on("toggleDeselect", function(){
+        canvas.isDrawingMode = true;
+    })
+
+
+
+    $("#control-pen-position").on("toggleSelect", function(){
+        isSettingNewPenPosition = true;
+    })
+    $("#control-pen-position").on("toggleDeselect", function(){
+        isSettingNewPenPosition = false;
+    })
+
+
+    $("#keyboard-control").on("toggleSelect", function(){
+        isKeyboardControlling = true;
+        $("#keyboard-control-container").slideDown();
+    })
+    $("#keyboard-control").on("toggleDeselect", function(){
+        isKeyboardControlling = false;
+        $("#keyboard-control-container").slideUp();
+    })
+
+    $("#keyboard-input-mm").val( keyboardControlDeltaPx * pxToMMFactor );
+    $("#keyboard-input-px").val( keyboardControlDeltaPx);
+    $("#keyboard-input-steps").val( keyboardControlDeltaPx * stepsPerMM);
+
+
+    // Keyboard movement
+    document.onkeydown = checkKeycode;
+    function checkKeycode(event) {
+        if(!isKeyboardControlling || !isMachineReady) return
+        // handling Internet Explorer stupidity with window.event
+        // @see http://stackoverflow.com/a/3985882/517705
+        var keyDownEvent = event || window.event,
+            keycode = (keyDownEvent.which) ? keyDownEvent.which : keyDownEvent.keyCode;
+        var LEFT = 37, UP = 38, RIGHT = 39, DOWN = 40;
+
+        let flechitas = false;
+
+        switch (keycode) {
+            case LEFT:
+                SetNextPenPositionPixels(penPositionPixels.x, penPositionPixels.y - keyboardControlDeltaPx, true); // setting last param to true skips the queue
+                flechitas = true;
+                break;
+            case UP:
+                // console.log( 'Up');
+                SetNextPenPositionPixels(penPositionPixels.x - keyboardControlDeltaPx, penPositionPixels.y, true);
+                PenPosition
+                flechitas = true;
+                break;
+            case RIGHT:
+                SetNextPenPositionPixels(penPositionPixels.x, penPositionPixels.y + keyboardControlDeltaPx, true);
+                flechitas = true;
+                break;
+            case DOWN:
+                SetNextPenPositionPixels(penPositionPixels.x + keyboardControlDeltaPx, penPositionPixels.y, true);
+                flechitas = true;
+                break;
+        }
+        if(flechitas){
+            event.stopPropagation();
+            event.preventDefault();
+        }
+    }
+
+
+
 
 } // ui elements init
 
@@ -552,7 +668,7 @@ function NativeToCartesian(_left, _right){
 	return pos;
 }
 
-function SetNextPenPositionPixels(_x, _y){
+function SetNextPenPositionPixels(_x, _y, skipQueue = false){
 	nextPenPosition.x = _x;
 	nextPenPosition.y = _y;
 	newPenPositionCircle.left = _x;
@@ -562,8 +678,12 @@ function SetNextPenPositionPixels(_x, _y){
 	let rightMotorDist = nextPenPosition.distance(rightMotorPositionPixels) *  pxPerStep;
 	let leftMotorDist = nextPenPosition.distance(leftMotorPositionPixels) *  pxPerStep;
 	let cmd = "C17,"+ Math.round(leftMotorDist) +","+ Math.round(rightMotorDist) +",2,END";
-	AddToQueue(cmd);
-	// WriteConsole(cmd);
+
+    if(skipQueue){
+        SerialSend(cmd); // cheating the queue.. im in a hurry!!
+    }else{
+        AddToQueue(cmd);
+    }
 }
 
 function UpdatePositionMetadata(vec){
@@ -817,8 +937,8 @@ function CheckQueue(){
 
 function AddToQueue(cmd){
   if(cmd == lastQueueCmd) return; // Avoid two equal commands to be sent
-	$("#queue").append("<div class='queue item'><span class='cmd'>"+cmd+"</span><div class='ui divider'></div></div>");
-	machineQueue.push(cmd);
+  $("#queue").append("<div class='queue item'><span class='cmd'>"+cmd+"</span><div class='ui divider'></div></div>");
+  machineQueue.push(cmd);
   lastQueueCmd = cmd;
 
   if(batchCompleted) NewQueueBatch();
