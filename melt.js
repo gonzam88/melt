@@ -110,52 +110,52 @@ function FabricInit(){
   canvas.add(motorLineLeft);
 
   motorRightCircle = new fabric.Circle({
-      radius: 6, fill: 'white', left: rightMotorPositionPixels.x, top: rightMotorPositionPixels.y, hasControls: false, originX: 'center', originY: 'center',
-  lockRotation: true,
-  lockMovementX: true,
-  lockMovementY: true,
-  lockScalingX: true,
-  lockScalingY: true,
-  lockUniScaling: true,
-      hasControls: false
+    radius: 6, fill: 'white', left: rightMotorPositionPixels.x, top: rightMotorPositionPixels.y, hasControls: false, originX: 'center', originY: 'center',
+    lockRotation: true,
+    lockMovementX: true,
+    lockMovementY: true,
+    lockScalingX: true,
+    lockScalingY: true,
+    lockUniScaling: true,
+    hasControls: false
   });
   motorLeftCircle = new fabric.Circle({
-      radius: 6, fill: 'white', left: leftMotorPositionPixels.x, top: rightMotorPositionPixels.y, hasControls: false, originX: 'center', originY: 'center',
-  lockRotation: true,
-  lockMovementX: true,
-  lockMovementY: true,
-  lockScalingX: true,
-  lockScalingY: true,
-  lockUniScaling: true,
-      hasControls: false
+    radius: 6, fill: 'white', left: leftMotorPositionPixels.x, top: rightMotorPositionPixels.y, hasControls: false, originX: 'center', originY: 'center',
+    lockRotation: true,
+    lockMovementX: true,
+    lockMovementY: true,
+    lockScalingX: true,
+    lockScalingY: true,
+    lockUniScaling: true,
+    hasControls: false
   });
   canvas.add(motorRightCircle);
   canvas.add(motorLeftCircle);
 
   gondolaCircle = new fabric.Circle({
-      radius: 3, fill: '#a4bd8e', left: 0, top: 0, hasControls: false, originX: 'center', originY: 'center',
-  lockRotation: true,
-  lockMovementX: true,
-  lockMovementY: true,
-  lockScalingX: true,
-  lockScalingY: true,
-  lockUniScaling: true,
-      hasControls: false
+    radius: 3, fill: '#a4bd8e', left: 0, top: 0, hasControls: false, originX: 'center', originY: 'center',
+    lockRotation: true,
+    lockMovementX: true,
+    lockMovementY: true,
+    lockScalingX: true,
+    lockScalingY: true,
+    lockUniScaling: true,
+    hasControls: false
   });
   canvas.add(gondolaCircle);
 
   machineSquare = new fabric.Rect({
-      width: 0, height: 0,
-      left: 0, top: 0,
-      fill: 'rgba(0,0,0,0)',
-      stroke: "white",
-  lockRotation: true,
-  lockMovementX: true,
-  lockMovementY: true,
-  lockScalingX: true,
-  lockScalingY: true,
-  lockUniScaling: true,
-      hasControls: false
+    width: 0, height: 0,
+    left: 0, top: 0,
+    fill: 'rgba(0,0,0,0)',
+    stroke: "white",
+    lockRotation: true,
+    lockMovementX: true,
+    lockMovementY: true,
+    lockScalingX: true,
+    lockScalingY: true,
+    lockUniScaling: true,
+    hasControls: false
   })
   canvas.add(machineSquare);
 
@@ -164,14 +164,14 @@ function FabricInit(){
   canvas.add(newPenPositionArrow);
 
   newPenPositionCircle = new fabric.Circle({
-     radius: 3, fill: '#B38FAC', left: 0, top: 0, hasControls: false, originX: 'center', originY: 'center',
-     lockRotation: true,
-     lockMovementX: true,
-     lockMovementY: true,
-     lockScalingX: true,
-     lockScalingY: true,
-     lockUniScaling: true,
-     hasControls: false
+   radius: 3, fill: '#B38FAC', left: 0, top: 0, hasControls: false, originX: 'center', originY: 'center',
+   lockRotation: true,
+   lockMovementX: true,
+   lockMovementY: true,
+   lockScalingX: true,
+   lockScalingY: true,
+   lockUniScaling: true,
+   hasControls: false
   });
   canvas.add(newPenPositionCircle);
 
@@ -206,9 +206,10 @@ function FabricInit(){
         if( isSettingPenPos){
         SetpenPositionPixels(mouseVector.x, mouseVector.y);
   		  isSettingPenPos = false; // SHould this go here or inside the function SetpenPositionPixels ?
-          DeactivateToggles();
+        DeactivateToggles();
   	  }else if( isSettingNewPenPosition ){
   		  SetNextPenPositionPixels(mouseVector.x, mouseVector.y);
+        console.log("Setting at ", mouseVector.x, mouseVector.y);
   		  // isSettingNewPenPosition = false;
   	  }
     }
@@ -315,12 +316,6 @@ function UiInit(){
       }else if(href == "tools"){
         ExitEditorMode();
       }
-
-    // if( $("#leftColumn").hasClass("six wide column")){
-    //     // Resize columns
-    //     $("#leftColumn").removeClass("eight wide column").addClass("six wide column");
-    //     $("#rightColumn").removeClass("eight wide column").addClass("ten wide column");
-    // }
 
     currContent = newContent;
   })
@@ -452,6 +447,7 @@ function UiInit(){
     function EnterEditorMode(){
         $("#editor-container").slideDown();
         $("#tools-buttons").hide();
+        edit.focus()
     }
     function ExitEditorMode(){
         $("#tools-buttons").slideDown();
@@ -488,15 +484,6 @@ function UiInit(){
     $(".deactivateToggle").click(function(){
         DeactivateToggles();
     });
-
-    function DeactivateToggles(){
-        if(currToggleEl){
-            // Deselect current toggle
-            currToggleEl.trigger("toggleDeselect");
-            currToggleEl.removeClass("activeToggle");
-            currToggleEl = "";
-        }
-    }
 
     // Setting the callbacks to their specific actions
     $("#tools-free-draw").on("toggleSelect", function(){
@@ -544,21 +531,19 @@ function UiInit(){
 
         switch (keycode) {
             case LEFT:
-                SetNextPenPositionPixels(penPositionPixels.x, penPositionPixels.y - keyboardControlDeltaPx, true); // setting last param to true skips the queue
+                SetNextPenPositionPixels(penPositionPixels.x - keyboardControlDeltaPx, penPositionPixels.y, true); // setting last param to true skips the queue
                 flechitas = true;
                 break;
             case UP:
-                // console.log( 'Up');
-                SetNextPenPositionPixels(penPositionPixels.x - keyboardControlDeltaPx, penPositionPixels.y, true);
-                PenPosition
+                SetNextPenPositionPixels(penPositionPixels.x, penPositionPixels.y - keyboardControlDeltaPx, true);
                 flechitas = true;
                 break;
             case RIGHT:
-                SetNextPenPositionPixels(penPositionPixels.x, penPositionPixels.y + keyboardControlDeltaPx, true);
+                SetNextPenPositionPixels(penPositionPixels.x + keyboardControlDeltaPx, penPositionPixels.y, true);
                 flechitas = true;
                 break;
             case DOWN:
-                SetNextPenPositionPixels(penPositionPixels.x + keyboardControlDeltaPx, penPositionPixels.y, true);
+                SetNextPenPositionPixels(penPositionPixels.x, penPositionPixels.y + keyboardControlDeltaPx, true);
                 flechitas = true;
                 break;
         }
@@ -572,6 +557,18 @@ function UiInit(){
 
 
 } // ui elements init
+
+function DeactivateToggles(){
+    if(currToggleEl){
+        // Deselect current toggle
+        currToggleEl.trigger("toggleDeselect");
+        currToggleEl.removeClass("activeToggle");
+        currToggleEl = "";
+    }
+}
+
+
+
 
 var editor, session, scriptCode;
 
@@ -675,7 +672,7 @@ function SetNextPenPositionPixels(_x, _y, skipQueue = false){
 	newPenPositionCircle.top = _y;
 	canvas.renderAll();
 
-	let rightMotorDist = nextPenPosition.distance(rightMotorPositionPixels) *  pxPerStep;
+	let rightMotorDist = nextPenPosition.distance(rightMotorPositionPixels) *  pxPerStep; // switched things here. so solve bug. Maybe what i thought was left was actually right ? anything to refactor?
 	let leftMotorDist = nextPenPosition.distance(leftMotorPositionPixels) *  pxPerStep;
 	let cmd = "C17,"+ Math.round(leftMotorDist) +","+ Math.round(rightMotorDist) +",2,END";
 
