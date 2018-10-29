@@ -70,6 +70,11 @@ $("document").ready(function(){
 
 }); // doc ready
 
+// Preventing some accidents
+window.onbeforeunload = function() {
+  return "Are you sure you want to stop plotting awesome drawings?";
+}
+
 function MeltInit(){
     // SERIAL Start
     serial = new p5.SerialPort();
@@ -447,7 +452,7 @@ function UiInit(){
     function EnterEditorMode(){
         $("#editor-container").slideDown();
         $("#tools-buttons").hide();
-        edit.focus()
+        editor.focus()
     }
     function ExitEditorMode(){
         $("#tools-buttons").slideDown();
@@ -996,12 +1001,13 @@ function AddPixelCoordToQueue(x,y){
 }
 
 function AddMMCoordToQueue(x,y){
-	let pos = new Victor(x *  stepsPerMM, y *  stepsPerMM);
-	let leftMotorDist = pos.distance(leftMotorPositionSteps);
-	let rightMotorDist = pos.distance(rightMotorPositionSteps);
-
-	let cmd = "C17,"+ Math.round(leftMotorDist) +","+ Math.round(rightMotorDist) +",2,END";
-	AddToQueue(cmd);
+	// let pos = new Victor(x *  stepsPerMM, y *  stepsPerMM);
+	// let leftMotorDist = pos.distance(leftMotorPositionSteps);
+	// let rightMotorDist = pos.distance(rightMotorPositionSteps);
+  //
+	// let cmd = "C17,"+ Math.round(leftMotorDist) +","+ Math.round(rightMotorDist) +",2,END";
+	// AddToQueue(cmd);
+  SetNextPenPositionPixels(x * mmToPxFactor, y * mmToPxFactor);
 }
 
 function DrawGrid(){
