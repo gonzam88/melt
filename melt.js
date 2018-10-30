@@ -412,6 +412,7 @@ function UiInit(){
 
   $('#clear-queue').click(function(){
   	machineQueue = [];
+    lastQueueCmd = "";
     NewQueueBatch();
   	$('#queue').html('');
   });
@@ -708,7 +709,7 @@ function SetNextPenPositionPixels(_x, _y, skipQueue = false){
 	newPenPositionCircle.top = _y;
     canvasNeedsRender = true;
 
-	let rightMotorDist = nextPenPosition.distance(rightMotorPositionPixels) *  pxPerStep; // switched things here. so solve bug. Maybe what i thought was left was actually right ? anything to refactor?
+	let rightMotorDist = nextPenPosition.distance(rightMotorPositionPixels) *  pxPerStep;
 	let leftMotorDist = nextPenPosition.distance(leftMotorPositionPixels) *  pxPerStep;
 	let cmd = "C17,"+ Math.round(leftMotorDist) +","+ Math.round(rightMotorDist) +",2,END";
     // console.timeEnd("SetNextPenPositionPixels");
@@ -721,15 +722,15 @@ function SetNextPenPositionPixels(_x, _y, skipQueue = false){
 }
 
 function AddMMCoordToQueue(x,y){
+	let pos = new Victor(x *  mmToPxFactor, y *  mmToPxFactor);
 
-	// let pos = new Victor(x *  stepsPerMM, y *  stepsPerMM);
-	// let leftMotorDist = pos.distance(leftMotorPositionSteps);
-	// let rightMotorDist = pos.distance(rightMotorPositionSteps);
-  //
-	// let cmd = "C17,"+ Math.round(leftMotorDist) +","+ Math.round(rightMotorDist) +",2,END";
-	// AddToQueue(cmd);
-  SetNextPenPositionPixels(x * mmToPxFactor, y * mmToPxFactor);
+	let leftMotorDist = pos.distance(leftMotorPositionPixels) * pxPerStep;
+	let rightMotorDist = pos.distance(rightMotorPositionPixels) * pxPerStep;
+    console.log(pos, leftMotorDist, rightMotorDist, pxPerStep);
+	let cmd = "C17,"+ Math.round(leftMotorDist) +","+ Math.round(rightMotorDist) +",2,END";
+	AddToQueue(cmd);
 }
+
 
 function UpdatePositionMetadata(vec){
     // Linea Motor
@@ -984,7 +985,7 @@ function CheckQueue(){
 function AddToQueue(cmd){
     // console.time("AddToQueue");
   if(cmd == lastQueueCmd) return; // Avoid two equal commands to be sent
-  // $("#queue").append("<div class='queue item'><span class='cmd'>"+cmd+"</span><div class='ui divider'></div></div>");
+  $("#queue").append("<div class='queue item'><span class='cmd'>"+cmd+"</span><div class='ui divider'></div></div>");
   machineQueue.push(cmd);
   lastQueueCmd = cmd;
 // console.timeEnd("AddToQueue");
