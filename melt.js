@@ -690,7 +690,7 @@ function codePluginInit(){
 
 } // codePluginInit
 
-<<<<<<< HEAD
+
 // Machine functions
 function debug(){
 
@@ -860,13 +860,12 @@ function p(txt){
 
 var lastReceivedString = "";
 var lastSentConsoleCmd = ""; // TODO hacer de esto un array
-=======
+
 // *********************
 //
 // Serial & Socket Communication
 //
 // *********************
->>>>>>> 394b2e47698f317c65154cef1d0717a3169e2e4b
 
 function SerialSend(cmd){
   serial.write(cmd + '\n');
