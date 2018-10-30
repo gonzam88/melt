@@ -37,9 +37,9 @@ var statusErrorIcon = '<i class="statuserror small exclamation circle icon"></i>
 var statusSuccessIcon = '<i class="statusok small check circle icon"></i>';
 var statusWorkingIcon = '<i class="statusworking notched circle loading icon"></i>';
 var statusElement = $("#statusAlert");
-var currToggleEl;
+var currToggleEl, workerAllowed = false;
 
-var canvas;
+var canvas, canvasNeedsRender = false;
 var motorLineRight, motorLineLeft, motorRightCircle, motorLeftCircle, machineSquare;
 var mouseVector = new Victor(0,0);
 var isSettingPenPos = false;
@@ -87,7 +87,26 @@ function MeltInit(){
     serial.on('open', gotOpen);
 
     setTimeout(CheckWsConnection, 1000); // 1 second after we start, we check wether a connection has been established to WebSocket. otherwise we show an alert
-    CheckQueue();
+
+    // Worker setup to allow
+    var doWork
+    try {
+        doWork = new Worker('libraries/interval.js')
+        // Worker allowed. initializing
+        workerAllowed = true;
+        doWork.onmessage = function(event) {
+            if ( event.data === 'interval.start' ) {
+                CheckQueue(); // queue your custom methods in here or whatever
+            }
+        };
+        doWork.postMessage({start:true,ms:200}); // tell the worker to start up with 250ms intervals
+        // doWork.postMessage({stop:true}); // or tell it just to stop.
+    } catch{
+        // Worker denied
+        workerAllowed = false;
+        CheckQueue();
+        console.warn( "Web worker not allowed 👨‍🏭 Plotter will run slow if tab is in background or computer fell asleep 😴 Try to run this in a local server enviroment like Mamp 🐘" );
+    }
 
     // Define the Melt Object
     melt = new Melt();
@@ -612,6 +631,16 @@ function codePluginInit(){
 } // codePluginInit
 
 // Machine functions
+function debug(){
+
+    mmPerRev = 32;
+    stepsPerRev = 200;
+    stepMultiplier = 1;
+    mmPerStep = .16;
+    stepsPerMM = 6.25;
+    SetMachineDimensionsMM(1200, 800);
+
+}
 
 function SetMachineDimensionsMM(_w, _h){
 	machineWidthMM = _w;
@@ -629,13 +658,14 @@ function SetMachineDimensionsMM(_w, _h){
 	motorLineRight.set({'x1': motorRightCircle.left, 'y1': 0})
 
 	machineSquare.set({'width': motorRightCircle.left, 'height': machineHeightMM * mmToPxFactor});
-	canvas.renderAll();
+
 
 	pxPerStep = machineWidthSteps / rightMotorPositionPixels.x;
 	stepPerPx = rightMotorPositionPixels.x / machineWidthSteps;
 
-  resizeCanvas();
-  DrawGrid();
+    canvasNeedsRender = true;
+    resizeCanvas();
+    DrawGrid();
 }
 
 function SetpenPositionPixels(_x, _y){
@@ -671,15 +701,17 @@ function NativeToCartesian(_left, _right){
 }
 
 function SetNextPenPositionPixels(_x, _y, skipQueue = false){
+    // console.time("SetNextPenPositionPixels");
 	nextPenPosition.x = _x;
 	nextPenPosition.y = _y;
 	newPenPositionCircle.left = _x;
 	newPenPositionCircle.top = _y;
-	canvas.renderAll();
+    canvasNeedsRender = true;
 
 	let rightMotorDist = nextPenPosition.distance(rightMotorPositionPixels) *  pxPerStep; // switched things here. so solve bug. Maybe what i thought was left was actually right ? anything to refactor?
 	let leftMotorDist = nextPenPosition.distance(leftMotorPositionPixels) *  pxPerStep;
 	let cmd = "C17,"+ Math.round(leftMotorDist) +","+ Math.round(rightMotorDist) +",2,END";
+    // console.timeEnd("SetNextPenPositionPixels");
 
     if(skipQueue){
         SerialSend(cmd); // cheating the queue.. im in a hurry!!
@@ -688,26 +720,37 @@ function SetNextPenPositionPixels(_x, _y, skipQueue = false){
     }
 }
 
+function AddMMCoordToQueue(x,y){
+
+	// let pos = new Victor(x *  stepsPerMM, y *  stepsPerMM);
+	// let leftMotorDist = pos.distance(leftMotorPositionSteps);
+	// let rightMotorDist = pos.distance(rightMotorPositionSteps);
+  //
+	// let cmd = "C17,"+ Math.round(leftMotorDist) +","+ Math.round(rightMotorDist) +",2,END";
+	// AddToQueue(cmd);
+  SetNextPenPositionPixels(x * mmToPxFactor, y * mmToPxFactor);
+}
+
 function UpdatePositionMetadata(vec){
-  // Linea Motor
-  motorLineRight.set({'x2': vec.x, 'y2': vec.y });
-  motorLineLeft.set({'x2': vec.x, 'y2': vec.y});
+    // Linea Motor
+    motorLineRight.set({'x2': vec.x, 'y2': vec.y });
+    motorLineLeft.set({'x2': vec.x, 'y2': vec.y});
 
-  $("#canvasMetaData .x").html( Math.round(vec.x) );
-  $("#canvasMetaData .y").html( Math.round(vec.y) );
+    $("#canvasMetaData .x").html( Math.round(vec.x) );
+    $("#canvasMetaData .y").html( Math.round(vec.y) );
 
-  $("#canvasMetaData .xmm").html( (vec.x * pxToMMFactor).toFixed(1) );
-  $("#canvasMetaData .ymm").html( (vec.y * pxToMMFactor).toFixed(1) );
+    $("#canvasMetaData .xmm").html( (vec.x * pxToMMFactor).toFixed(1) );
+    $("#canvasMetaData .ymm").html( (vec.y * pxToMMFactor).toFixed(1) );
 
-  let disToLMotor = vec.distance(leftMotorPositionPixels);
-  $("#canvasMetaData .lmotomm").html( (disToLMotor * pxToMMFactor).toFixed(1) );
-  $("#canvasMetaData .lmotosteps").html( (disToLMotor *  pxPerStep).toFixed(1));
+    let disToLMotor = vec.distance(leftMotorPositionPixels);
+    $("#canvasMetaData .lmotomm").html( (disToLMotor * pxToMMFactor).toFixed(1) );
+    $("#canvasMetaData .lmotosteps").html( (disToLMotor *  pxPerStep).toFixed(1));
 
-  let disToRMotor = vec.distance(rightMotorPositionPixels);
-  $("#canvasMetaData .rmotomm").html( (disToRMotor * pxToMMFactor).toFixed(1) );
-  $("#canvasMetaData .rmotosteps").html( (disToRMotor *  pxPerStep).toFixed(1));
+    let disToRMotor = vec.distance(rightMotorPositionPixels);
+    $("#canvasMetaData .rmotomm").html( (disToRMotor * pxToMMFactor).toFixed(1) );
+    $("#canvasMetaData .rmotosteps").html( (disToRMotor *  pxPerStep).toFixed(1));
 
-  canvas.renderAll(); // update
+    canvasNeedsRender = true;
 }
 
 
@@ -934,18 +977,21 @@ function CheckQueue(){
 	}
   }
   FormatBatchElapsed();
-	setTimeout(CheckQueue, 200);
+  if(canvasNeedsRender) canvas.renderAll();
+  if(!workerAllowed) setTimeout(CheckQueue, 200); // If worker not allowed (visa problems? same) we'll have to do the job ourselves
 }
 
 function AddToQueue(cmd){
+    // console.time("AddToQueue");
   if(cmd == lastQueueCmd) return; // Avoid two equal commands to be sent
-  $("#queue").append("<div class='queue item'><span class='cmd'>"+cmd+"</span><div class='ui divider'></div></div>");
+  // $("#queue").append("<div class='queue item'><span class='cmd'>"+cmd+"</span><div class='ui divider'></div></div>");
   machineQueue.push(cmd);
   lastQueueCmd = cmd;
-
+// console.timeEnd("AddToQueue");
   if(batchCompleted) NewQueueBatch();
   batchTotal++;
   UpdateBatchPercent();
+
 }
 
 var lastQueueCmd = "";
@@ -1000,15 +1046,7 @@ function AddPixelCoordToQueue(x,y){
 	AddToQueue(cmd);
 }
 
-function AddMMCoordToQueue(x,y){
-	// let pos = new Victor(x *  stepsPerMM, y *  stepsPerMM);
-	// let leftMotorDist = pos.distance(leftMotorPositionSteps);
-	// let rightMotorDist = pos.distance(rightMotorPositionSteps);
-  //
-	// let cmd = "C17,"+ Math.round(leftMotorDist) +","+ Math.round(rightMotorDist) +",2,END";
-	// AddToQueue(cmd);
-  SetNextPenPositionPixels(x * mmToPxFactor, y * mmToPxFactor);
-}
+
 
 function DrawGrid(){
   let offset = -200;
@@ -1039,7 +1077,7 @@ function DrawGrid(){
         };
     };
     // End grid
-    canvas.renderAll();
+    canvasNeedsRender = true;
 }
 
 function resizeCanvas() {
@@ -1112,26 +1150,29 @@ const Melt = class{
 	}
 
 	ellipse(x, y, r, res = 100){
-    res = Math.round(res);
-    if(res < 3) res = 3; // A "circle" cant have less than 3 sides.. though that´s a triangle yo
-    this.cachedFirstVx;
-    this.PenUp();
-		// I generete an array of points that create the circle
-    for (let i = 0; i < res; i++) {
-        let angle = map(i, 0, res, 0, 2 * Math.PI);
-        let posX = (r * Math.cos(angle)) + x;
-        let posY = (r * Math.sin(angle)) + y;
-        if(i == 0){
-          this.cachedFirstVx = new Victor(posX,posY);
-        }else if(i == 1){
-          // After the moving to the first vertex I start drawing
-          this.PenDown();
+        // console.time("ellipse");
+        res = Math.round(res);
+        if(res < 3) res = 3; // A "circle" cant have less than 3 sides.. though that´s a triangle yo
+        this.cachedFirstVx;
+        this.PenUp();
+    		// I generete an array of points that create the circle
+        for (let i = 0; i < res; i++) {
+            let angle = map(i, 0, res, 0, 2 * Math.PI);
+            let posX = (r * Math.cos(angle)) + x;
+            let posY = (r * Math.sin(angle)) + y;
+            if(i == 0){
+              this.cachedFirstVx = new Victor(posX,posY);
+            }else if(i == 1){
+              // After the moving to the first vertex I start drawing
+              this.PenDown();
+            }
+      		AddMMCoordToQueue(posX, posY);
         }
-  			AddMMCoordToQueue(posX, posY);
-    }
-    // After the circle is complete i have to go back to the first vertex position
+        // After the circle is complete i have to go back to the first vertex position
+        // console.timeEnd("ellipse");
 		AddMMCoordToQueue(this.cachedFirstVx.x, this.cachedFirstVx.y);
 		this.PenUp();
+
 	}
 }
 
