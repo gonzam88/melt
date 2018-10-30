@@ -587,6 +587,10 @@ function UiInit(){
         }
     }
 
+	$("#uploadMachineConfig").click(function(){
+		UploadMachineConfig();
+	})
+
 } // ui elements init
 
 function DeactivateToggles(){
@@ -882,7 +886,6 @@ function socketError(theerror) {
 //
 // *********************
 
-
 function SetMachineDimensionsMM(_w, _h){
 	machineWidthMM = _w;
 	machineHeightMM = _h;
@@ -999,6 +1002,33 @@ function UpdatePositionMetadata(vec){
     $("#canvasMetaData .rmotosteps").html( (disToRMotor *  pxPerStep).toFixed(1));
 
     canvasNeedsRender = true;
+}
+
+function UploadMachineConfig(){
+	// Set machine size
+	machineWidthMM 	= $("#inputMachineWidth").val();
+	machineHeightMM	= $("#inputMachineHeight").val();
+	AddToQueue(`C24,${machineWidthMM},${machineHeightMM},END`);
+
+	// Set machine millimetre extension per motor revolution (MM Per Rev)
+	mmPerRev = $("#inputMmPerRev").val();
+	AddToQueue(`C29,${mmPerRev},END`);
+
+	// Set motor steps per revolution:
+	stepsPerRev = $("#inputStepsPerRev").val();
+	AddToQueue(`C30,${stepsPerRev},END`);
+
+	// maximum motor speed
+	motorMaxSpeed = $("#inputMaxSpeed").val();
+	AddToQueue(`C31,${motorMaxSpeed},END`);
+
+	//  motor Acceleration
+	motorAcceleration = $("#inputAcceleration").val();
+	AddToQueue(`C32,${motorAcceleration},END`);
+
+	// step multiplier
+	stepMultiplier = $("#inputStepMultiplier").val();
+	AddToQueue(`C37,${stepMultiplier},END`);
 }
 
 // *******

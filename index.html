@@ -235,7 +235,7 @@
               <!-- SETTINGS -->
               <div id="content-settings">
 
-								<h5>Machine</h5>
+				<h5>Machine</h5>
 
                 <div class="ui fluid right labeled input mypopup"  data-html="<div class='header'>Set Machine Size</div><div class='content'><pre>C24,[width],[height],END</pre>Sets the machine's dimensions in millimetres.</div>">
                   <div class="ui basic label">Machine Width (mm)</div>
@@ -311,7 +311,7 @@
                 <h5>Machine Configuration</h5>
 
                 <div class="ui fluid buttons">
-                  <button class="ui disabled button"><i class="upload icon"></i> Upload</button>
+                  <button class="ui disabled button" id="uploadMachineConfig"><i class="upload icon"></i> Upload</button>
                   <button class="ui disabled button"><i class="download icon"></i> Download</button>
                 </div>
 
@@ -324,9 +324,16 @@
 
                 <div class="ui divider"></div>
 
+				<h5>More Tools</h5>
+				<div class="ui fluid vertical labeled icon buttons">
+					<button class="ui disabled button"><i class="bomb icon"></i> Reset Machine</button>
+                 	<button class="ui disabled button"><i class="recycle icon"></i> Reset EEPROM</button>
+                </div>
 
-								<h5>Serial</h5>
-								<p>Connected to <span id="connected_to"></span></p>
+
+				<div class="ui divider"></div>
+				<h5>Serial</h5>
+				<p>Connected to <span id="connected_to"></span></p>
                 <button class="ui mini labeled icon button serial_reconnect">
                   <i class="road icon"></i>
                   New Connection
