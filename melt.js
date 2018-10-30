@@ -76,16 +76,33 @@ window.onbeforeunload = function() {
   return "Are you sure you want to stop plotting awesome drawings?";
 }
 
+function map(x, in_min, in_max, out_min, out_max)
+{
+  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}
+
+function debug(){
+    mmPerRev = 32;
+    stepsPerRev = 200;
+    stepMultiplier = 1;
+    mmPerStep = .16;
+    stepsPerMM = 6.25;
+    SetMachineDimensionsMM(1200, 800);
+}
+function p(txt){
+  console.log(txt);
+}
+
 function MeltInit(){
     // SERIAL Start
     serial = new p5.SerialPort();
     // Let's list the ports available
     var portlist = serial.list();
-    serial.on('connected', serverConnected);
-    serial.on('list', gotList);
-    serial.on('data', gotData);
-    serial.on('error', gotError);
-    serial.on('open', gotOpen);
+    serial.on('connected', socketConnected);
+    serial.on('list', socketReceivedPortList);
+    serial.on('data', SerialReceive);
+    serial.on('error', socketError);
+    serial.on('open', socketOpened);
 
     setTimeout(CheckWsConnection, 1000); // 1 second after we start, we check wether a connection has been established to WebSocket. otherwise we show an alert
 
@@ -371,7 +388,7 @@ function UiInit(){
   })
 
   $(".serial_reconnect").click(function(){
-    gotList(serial.list());
+    socketReceivedPortList(serial.list());
   })
 
   $('.mypopup').popup();
@@ -391,14 +408,6 @@ function UiInit(){
   $("#pen-drop").click(function(){
   	SerialSend("C13,DOWN,END");
   })
-
-  // $('#tools-free-draw').click(function(){
-  // 	if(canvas.isDrawingMode){
-  // 		canvas.isDrawingMode = false;
-  // 	}else{
-  // 		canvas.isDrawingMode = true;
-  // 	}
-  // });
 
   $('#pause-queue').click(function(){
   	if(isQueueActive){
@@ -580,8 +589,9 @@ function UiInit(){
         }
     }
 
-
-
+	$("#uploadMachineConfig").click(function(){
+		UploadMachineConfig();
+	})
 
 } // ui elements init
 
@@ -593,12 +603,62 @@ function DeactivateToggles(){
         currToggleEl = "";
     }
 }
+function EnableWorkspace(){
+  $("#dimmerEl").removeClass("active");
+}
+function DisableWorkspace(){
+  $("#dimmerEl").addClass("active");
+}
 
+function DrawGrid(){
+  let offset = -200;
+  options = {
+    isGrid: true,
+    distance: 20,
+    width: canvas.width,
+    height: canvas.height,
+    param: {
+       stroke: '#4c5669',
+       strokeWidth: 1,
+       selectable: false
+    }
+  },
+  gridLen = (options.width / options.distance) + 1;
+
+  for (var i = 0; i < gridLen; i++) {
+      var distance   = (i * options.distance) + offset,
+        horizontal = new fabric.Line([ distance, + offset, distance, options.width + offset], options.param),
+        vertical   = new fabric.Line([ + offset, distance, options.width  + offset, distance], options.param);
+        canvas.add(horizontal);
+        canvas.add(vertical);
+        horizontal.sendToBack();
+        vertical.sendToBack();
+        if(i%5 === 0){
+            horizontal.set({stroke: '#7a7d82'});
+            vertical.set({stroke: '#7a7d82'});
+        };
+    };
+    // End grid
+    canvasNeedsRender = true;
+}
+
+function resizeCanvas() {
+  canvas.setHeight( $('#canvasSizer').height() );
+  canvas.setWidth(  $('#canvasSizer').width() );
+
+  let offX = (canvas.width - machineSquare.width) / 2;
+  let offY = (canvas.height - machineSquare.height) / 2;
+
+  canvas.viewportTransform[4] = offX;
+  canvas.viewportTransform[5] = offY;
+  canvas.requestRenderAll();
+}
+
+// ui stuff ends here (mostly)
 
 
 
 var editor, session, scriptCode;
-
 function codePluginInit(){
     // flask = new CodeFlask('#myFlask', { language: 'js', lineNumbers: true });
     // flask.updateCode('"use strict";\n');
@@ -630,6 +690,7 @@ function codePluginInit(){
 
 } // codePluginInit
 
+<<<<<<< HEAD
 // Machine functions
 function debug(){
 
@@ -799,6 +860,13 @@ function p(txt){
 
 var lastReceivedString = "";
 var lastSentConsoleCmd = ""; // TODO hacer de esto un array
+=======
+// *********************
+//
+// Serial & Socket Communication
+//
+// *********************
+>>>>>>> 394b2e47698f317c65154cef1d0717a3169e2e4b
 
 function SerialSend(cmd){
   serial.write(cmd + '\n');
@@ -807,15 +875,7 @@ function SerialSend(cmd){
   WriteConsole(cmd)
 }
 
-function EnableWorkspace(){
-  $("#dimmerEl").removeClass("active");
-}
-function DisableWorkspace(){
-  $("#dimmerEl").addClass("active");
-}
-
-// There is data available to work with from the serial port
-function gotData() {
+function SerialReceive() {
   var currentString = serial.readStringUntil("\r\n");
   // var currentString = serial.readString();
   // console.log(currentString);
@@ -930,7 +990,10 @@ function gotData() {
   }
   WriteConsole(currentString, true);
   lastReceivedString = currentString;
-} // gotData
+} // SerialReceive
+
+var lastReceivedString = "";
+var lastSentConsoleCmd = ""; // TODO hacer de esto un array
 
 function WriteConsole(txt, received = false){
   let icon, clase = "log";
@@ -950,6 +1013,200 @@ function WriteConsole(txt, received = false){
     $("#console").children().first().remove();
   }
 }
+
+// Got the list of ports
+function socketReceivedPortList(thelist) {
+  $('.ui.basic.modal').modal('show');
+  // theList is an array of their names
+  $("#serial_connections").html("");
+  let serialConnectionsContent = "";
+  for (var i = 0; i < thelist.length; i++) {
+    // Display in the console
+    var icon = "microchip";
+    if(thelist[i].includes("Bluetooth")){
+      icon = "bluetooth";
+    }
+    serialConnectionsContent += '<div class="ui green basic cancel inverted button" data-connectto="'+ thelist[i] +'"><i class="'+icon+' icon"></i> '+thelist[i]+'</div>';
+  }
+  $("#serial_connections").html(serialConnectionsContent);
+}
+
+function socketConnected() {
+	wsConnected = true;
+	$("#ws-alert").hide();
+}
+function CheckWsConnection(){
+	if(!wsConnected){
+		$("#ws-alert").slideDown();
+	}
+}
+// Connected to our serial device
+function socketOpened() {
+  console.log("Serial Port is open!");
+}
+
+// Ut oh, here is an error, let's log it
+function socketError(theerror) {
+	statusElement.html(statusErrorIcon);
+}
+
+
+// *********************
+//
+// Machine control
+//
+// *********************
+
+function SetMachineDimensionsMM(_w, _h){
+	machineWidthMM = _w;
+	machineHeightMM = _h;
+
+	machineWidthSteps = machineWidthMM * stepsPerMM;
+	machineHeightMMSteps = machineHeightMM * stepsPerMM;
+
+	leftMotorPositionSteps = new Victor(0,0);
+	rightMotorPositionSteps = new Victor(0, machineWidthSteps);
+
+	rightMotorPositionPixels.x = machineWidthMM * mmToPxFactor;
+
+	motorRightCircle.left = rightMotorPositionPixels.x;
+	motorLineRight.set({'x1': motorRightCircle.left, 'y1': 0})
+
+	machineSquare.set({'width': motorRightCircle.left, 'height': machineHeightMM * mmToPxFactor});
+
+
+	pxPerStep = machineWidthSteps / rightMotorPositionPixels.x;
+	stepPerPx = rightMotorPositionPixels.x / machineWidthSteps;
+
+    canvasNeedsRender = true;
+    resizeCanvas();
+    DrawGrid();
+}
+
+function SetpenPositionPixels(_x, _y){
+	penPositionPixels.x = _x;
+	penPositionPixels.y = _y;
+	gondolaCircle.left = _x;
+	gondolaCircle.top = _y;
+	UpdatePositionMetadata(penPositionPixels);
+
+	let leftMotorDist = penPositionPixels.distance(leftMotorPositionPixels) *  pxPerStep;
+	let rightMotorDist = penPositionPixels.distance(rightMotorPositionPixels) *  pxPerStep;
+
+	let cmd = "C09,"+ Math.round(leftMotorDist) +","+ Math.round(rightMotorDist) +",END";
+	SerialSend(cmd);
+	console.log("New Pos: " + cmd);
+}
+
+function SyncGondolaPosition(_x, _y){
+	penPositionPixels.x = _x;
+	penPositionPixels.y = _y;
+	gondolaCircle.left = _x;
+	gondolaCircle.top = _y;
+	UpdatePositionMetadata(penPositionPixels);
+}
+
+function NativeToCartesian(_left, _right){
+	// Math borrowed from original polarcontroller :)  https://github.com/euphy/polargraphcontroller/blob/master/Machine.pde#L339
+ 	let calcX = (Math.pow(machineWidthSteps, 2) - Math.pow(_right, 2) + Math.pow(_left, 2)) / (machineWidthSteps * 2);
+	let calcY = Math.sqrt( Math.pow(_left, 2) - Math.pow(calcX, 2) );
+
+	let pos = new Victor(calcX, calcY);
+	return pos;
+}
+
+function SetNextPenPositionPixels(_x, _y, skipQueue = false){
+    // console.time("SetNextPenPositionPixels");
+	nextPenPosition.x = _x;
+	nextPenPosition.y = _y;
+	newPenPositionCircle.left = _x;
+	newPenPositionCircle.top = _y;
+    canvasNeedsRender = true;
+
+	let rightMotorDist = nextPenPosition.distance(rightMotorPositionPixels) *  pxPerStep;
+	let leftMotorDist = nextPenPosition.distance(leftMotorPositionPixels) *  pxPerStep;
+	let cmd = "C17,"+ Math.round(leftMotorDist) +","+ Math.round(rightMotorDist) +",2,END";
+    // console.timeEnd("SetNextPenPositionPixels");
+
+    if(skipQueue){
+        SerialSend(cmd); // cheating the queue.. im in a hurry!!
+    }else{
+        AddToQueue(cmd);
+    }
+}
+
+function AddMMCoordToQueue(x,y){
+	let pos = new Victor(x *  mmToPxFactor, y *  mmToPxFactor);
+
+	let leftMotorDist = pos.distance(leftMotorPositionPixels) * pxPerStep;
+	let rightMotorDist = pos.distance(rightMotorPositionPixels) * pxPerStep;
+    console.log(pos, leftMotorDist, rightMotorDist, pxPerStep);
+	let cmd = "C17,"+ Math.round(leftMotorDist) +","+ Math.round(rightMotorDist) +",2,END";
+	AddToQueue(cmd);
+}
+
+function AddPixelCoordToQueue(x,y){
+	let pos = new Victor(x *  pxPerStep, y *  pxPerStep);
+	let leftMotorDist = pos.distance(leftMotorPositionSteps);
+	let rightMotorDist = pos.distance(rightMotorPositionSteps);
+	let cmd = "C17,"+ Math.round(leftMotorDist) +","+ Math.round(rightMotorDist) +",2,END";
+	AddToQueue(cmd);
+}
+
+function UpdatePositionMetadata(vec){
+    // Linea Motor
+    motorLineRight.set({'x2': vec.x, 'y2': vec.y });
+    motorLineLeft.set({'x2': vec.x, 'y2': vec.y});
+
+    $("#canvasMetaData .x").html( Math.round(vec.x) );
+    $("#canvasMetaData .y").html( Math.round(vec.y) );
+
+    $("#canvasMetaData .xmm").html( (vec.x * pxToMMFactor).toFixed(1) );
+    $("#canvasMetaData .ymm").html( (vec.y * pxToMMFactor).toFixed(1) );
+
+    let disToLMotor = vec.distance(leftMotorPositionPixels);
+    $("#canvasMetaData .lmotomm").html( (disToLMotor * pxToMMFactor).toFixed(1) );
+    $("#canvasMetaData .lmotosteps").html( (disToLMotor *  pxPerStep).toFixed(1));
+
+    let disToRMotor = vec.distance(rightMotorPositionPixels);
+    $("#canvasMetaData .rmotomm").html( (disToRMotor * pxToMMFactor).toFixed(1) );
+    $("#canvasMetaData .rmotosteps").html( (disToRMotor *  pxPerStep).toFixed(1));
+
+    canvasNeedsRender = true;
+}
+
+function UploadMachineConfig(){
+	// Set machine size
+	machineWidthMM 	= $("#inputMachineWidth").val();
+	machineHeightMM	= $("#inputMachineHeight").val();
+	AddToQueue(`C24,${machineWidthMM},${machineHeightMM},END`);
+
+	// Set machine millimetre extension per motor revolution (MM Per Rev)
+	mmPerRev = $("#inputMmPerRev").val();
+	AddToQueue(`C29,${mmPerRev},END`);
+
+	// Set motor steps per revolution:
+	stepsPerRev = $("#inputStepsPerRev").val();
+	AddToQueue(`C30,${stepsPerRev},END`);
+
+	// maximum motor speed
+	motorMaxSpeed = $("#inputMaxSpeed").val();
+	AddToQueue(`C31,${motorMaxSpeed},END`);
+
+	//  motor Acceleration
+	motorAcceleration = $("#inputAcceleration").val();
+	AddToQueue(`C32,${motorAcceleration},END`);
+
+	// step multiplier
+	stepMultiplier = $("#inputStepMultiplier").val();
+	AddToQueue(`C37,${stepMultiplier},END`);
+}
+
+// *******
+//
+// Queue
+//
+// *******
 
 var externalQueueLength = 0;
 function CheckQueue(){
@@ -1036,70 +1293,20 @@ function FormatBatchElapsed(){
   $("#elapsed-time").html(msg);
 }
 
-function AddPixelCoordToQueue(x,y){
-	let pos = new Victor(x *  pxPerStep, y *  pxPerStep);
-	let leftMotorDist = pos.distance(leftMotorPositionSteps);
-	let rightMotorDist = pos.distance(rightMotorPositionSteps);
-
-	let cmd = "C17,"+ Math.round(leftMotorDist) +","+ Math.round(rightMotorDist) +",2,END";
-	AddToQueue(cmd);
-}
 
 
 
-function DrawGrid(){
-  let offset = -200;
-  options = {
-    isGrid: true,
-    distance: 20,
-    width: canvas.width,
-    height: canvas.height,
-    param: {
-       stroke: '#4c5669',
-       strokeWidth: 1,
-       selectable: false
-    }
-  },
-  gridLen = (options.width / options.distance) + 1;
-
-  for (var i = 0; i < gridLen; i++) {
-      var distance   = (i * options.distance) + offset,
-        horizontal = new fabric.Line([ distance, + offset, distance, options.width + offset], options.param),
-        vertical   = new fabric.Line([ + offset, distance, options.width  + offset, distance], options.param);
-        canvas.add(horizontal);
-        canvas.add(vertical);
-        horizontal.sendToBack();
-        vertical.sendToBack();
-        if(i%5 === 0){
-            horizontal.set({stroke: '#7a7d82'});
-            vertical.set({stroke: '#7a7d82'});
-        };
-    };
-    // End grid
-    canvasNeedsRender = true;
-}
-
-function resizeCanvas() {
-  canvas.setHeight( $('#canvasSizer').height() );
-  canvas.setWidth(  $('#canvasSizer').width() );
-
-  let offX = (canvas.width - machineSquare.width) / 2;
-  let offY = (canvas.height - machineSquare.height) / 2;
-
-  canvas.viewportTransform[4] = offX;
-  canvas.viewportTransform[5] = offY;
-  canvas.requestRenderAll();
-}
-
-
-function map(x, in_min, in_max, out_min, out_max)
-{
-  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
-}
 
 const Polargraph = class{
 	// TODO Put plotter functions here
 }
+
+// ***********************
+//
+// Melt Drawing Functions
+//
+// ***********************
+
 
 const Melt = class{
 	// Drawing Functions
@@ -1184,8 +1391,6 @@ function CheckCode(){
 
     if(session.getAnnotations().length == 0){
         codeStr = editor.getValue();
-
-
         try { // This is a second test
             StartedDrawingCode()
             EvalCode()
