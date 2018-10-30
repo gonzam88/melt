@@ -40,6 +40,7 @@ var statusElement = $("#statusAlert");
 var currToggleEl, workerAllowed = false;
 
 var canvas, canvasNeedsRender = false;
+var appRefreshRate = 150; // in millis
 var motorLineRight, motorLineLeft, motorRightCircle, motorLeftCircle, machineSquare;
 var mouseVector = new Victor(0,0);
 var isSettingPenPos = false;
@@ -99,7 +100,7 @@ function MeltInit(){
                 CheckQueue(); // queue your custom methods in here or whatever
             }
         };
-        doWork.postMessage({start:true,ms:200}); // tell the worker to start up with 250ms intervals
+        doWork.postMessage({start:true,ms:appRefreshRate}); // tell the worker to start up with 250ms intervals
         // doWork.postMessage({stop:true}); // or tell it just to stop.
     } catch{
         // Worker denied
@@ -256,6 +257,7 @@ function FabricInit(){
   	mouseVector.y = pointer.y;
 
   	UpdatePositionMetadata(mouseVector);
+    canvas.renderAll();
   }); // mouse move
 
   canvas.on('mouse:up', function(opt) {
@@ -621,12 +623,9 @@ function codePluginInit(){
 	session.setTabSize(4);
 
 
-    session.on('change', function() {
-    	// if theres no errors, save to localStorage
-        if(session.getAnnotations().length == 0){
-            let scriptCode = editor.getValue();
-        	localStorage["scriptCode"] = scriptCode;
-        }
+  session.on('change', function() {
+    let scriptCode = editor.getValue();
+    localStorage["scriptCode"] = scriptCode;
 	});
 
 } // codePluginInit
@@ -726,7 +725,6 @@ function AddMMCoordToQueue(x,y){
 
 	let leftMotorDist = pos.distance(leftMotorPositionPixels) * pxPerStep;
 	let rightMotorDist = pos.distance(rightMotorPositionPixels) * pxPerStep;
-    console.log(pos, leftMotorDist, rightMotorDist, pxPerStep);
 	let cmd = "C17,"+ Math.round(leftMotorDist) +","+ Math.round(rightMotorDist) +",2,END";
 	AddToQueue(cmd);
 }
