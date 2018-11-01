@@ -69,6 +69,7 @@ $("document").ready(function(){
     UiInit();
     codePluginInit();
 
+    UpdateBatchPercent();
 }); // doc ready
 
 // Preventing some accidents
@@ -790,6 +791,15 @@ function AddMMCoordToQueue(x,y){
 	AddToQueue(cmd);
 }
 
+function GetMMCoordCommand(x,y){
+	let pos = new Victor(x *  mmToPxFactor, y *  mmToPxFactor);
+
+	let leftMotorDist = pos.distance(leftMotorPositionPixels) * pxPerStep;
+	let rightMotorDist = pos.distance(rightMotorPositionPixels) * pxPerStep;
+	let cmd = "C17,"+ Math.round(leftMotorDist) +","+ Math.round(rightMotorDist) +",2,END";
+	return cmd;
+}
+
 
 function UpdatePositionMetadata(vec){
     // Linea Motor
@@ -891,8 +901,8 @@ function SerialReceive() {
     break;
 
     case 'READY':
-	  		statusElement.html(statusSuccessIcon);
-			  isMachineReady = true;
+        statusElement.html(statusSuccessIcon);
+        isMachineReady = true;
         if(!batchCompleted){
           if(isQueueActive || waitingReadyAfterPause){
             waitingReadyAfterPause = false;
@@ -1139,7 +1149,7 @@ function AddMMCoordToQueue(x,y){
 
 	let leftMotorDist = pos.distance(leftMotorPositionPixels) * pxPerStep;
 	let rightMotorDist = pos.distance(rightMotorPositionPixels) * pxPerStep;
-    console.log(pos, leftMotorDist, rightMotorDist, pxPerStep);
+    // console.log(pos, leftMotorDist, rightMotorDist, pxPerStep);
 	let cmd = "C17,"+ Math.round(leftMotorDist) +","+ Math.round(rightMotorDist) +",2,END";
 	AddToQueue(cmd);
 }
@@ -1232,21 +1242,34 @@ function CheckQueue(){
 	}
   }
   FormatBatchElapsed();
-  if(canvasNeedsRender) canvas.renderAll();
+  if(canvasNeedsRender){
+      canvas.renderAll();
+      canvasNeedsRender = false;
+  }
   if(!workerAllowed) setTimeout(CheckQueue, 200); // If worker not allowed (visa problems? same) we'll have to do the job ourselves
 }
 
+
+var queueUiLength = 51;
+var queueLastItem = $("#queue-last-item");
+
 function AddToQueue(cmd){
     // console.time("AddToQueue");
-  if(cmd == lastQueueCmd) return; // Avoid two equal commands to be sent
-  $("#queue").append("<div class='queue item'><span class='cmd'>"+cmd+"</span><div class='ui divider'></div></div>");
+  if(cmd == lastQueueCmd) return "Command ignored for being identical to previous"; // Avoid two equal commands to be sent
+
   machineQueue.push(cmd);
   lastQueueCmd = cmd;
-// console.timeEnd("AddToQueue");
+  // console.timeEnd("AddToQueue");
   if(batchCompleted) NewQueueBatch();
   batchTotal++;
-  UpdateBatchPercent();
 
+  if(machineQueue.length < queueUiLength){
+      // If UI queue is not populated, lets add it
+      queueLastItem.before("<div class='queue item'><span class='cmd'>"+cmd+"</span><div class='ui divider'></div></div>");
+      // $("#queue").append();
+  }else{
+      queueLastItem.show();
+  }
 }
 
 var lastQueueCmd = "";
@@ -1261,6 +1284,12 @@ function UpdateBatchPercent(){
     batchPercent = 100;
   }
   $("#queue-progress").progress({percent: batchPercent});
+
+  if( $(queueLastItem).is(":visible") ){
+      $("#queueRemaining").html( machineQueue.length - queueUiLength );
+  }
+
+  setTimeout(UpdateBatchPercent, 1000); // Check batch progress every second
 }
 
 function NewQueueBatch(){
@@ -1306,6 +1335,7 @@ const Polargraph = class{
 //
 // ***********************
 
+const OBJECT_TYPE_CALLBACK = 0;
 
 const Melt = class{
 	// Drawing Functions
@@ -1443,4 +1473,29 @@ function EndedDrawingCode(){
 	$(".run-code-updown").removeClass("disabled");
 	$("#stop-code-loop").hide();
 	$("#remaining-repetitions").hide();
+}
+
+var test = [];
+function DrawSomething(){
+    var xoff = melt.PenPosition().x, yoff = melt.PenPosition().y;
+    var grid = 2;
+    var alto = 330, ancho = 490;
+
+    for(let i=0; i<ancho/grid; i++){
+        for(let j=0; j<alto/grid; j++){
+           PickOne()? LtR(i*grid, j*grid) : RtL(i*grid, j*grid);
+        }
+    }
+
+    function PickOne(){
+        return Math.floor(Math.random()*2) ? true:false;
+    }
+
+    function RtL(x,y){
+        melt.line(x+xoff, y+yoff, x+xoff+grid, y+yoff+grid);
+    }
+
+    function LtR(x,y){
+        melt.line(x+xoff+grid, y+yoff, x+xoff, y+yoff+grid);
+    }
 }

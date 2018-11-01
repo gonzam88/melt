@@ -243,12 +243,12 @@ h2 .content, .ui.header .sub.header{
 
 /* start css magic */
 /* Dont display more than 50 items in queue */
-.queue.item:nth-child(50):after{
+/* .queue.item:nth-child(50):after{
 	content:"...";
-}
-.queue.item:nth-child(n+51){
+} */
+/* .queue.item:nth-child(n+51){
 	display:none;
-}
+} */
 /* end css magic */
 
 
@@ -279,7 +279,7 @@ h2 .content, .ui.header .sub.header{
 .run-code-updown i{
 	margin: 0px !important
 }
-#remaining-repetitions, #stop-code-loop, #run-code-check-error{
+#remaining-repetitions, #stop-code-loop, #run-code-check-error, #queue-last-item{
 	display: none;
 }
 
