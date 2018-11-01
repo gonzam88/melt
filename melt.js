@@ -901,26 +901,17 @@ function SerialReceive() {
     break;
 
     case 'READY':
-        statusElement.html(statusSuccessIcon);
-        isMachineReady = true;
-        if(!batchCompleted){
-          if(isQueueActive || waitingReadyAfterPause){
-            waitingReadyAfterPause = false;
-            batchDone ++;
-            if(batchDone >= batchTotal) QueueBatchComplete();
-            UpdateBatchPercent();
-          }
-        }
-	  		break;
+        OnMachineReady();
+  		break;
 
-		case 'Loaded':
-			if(responseWords[1].startsWith("width")){
-				machineWidthMM = parseInt( responseWords[1].split(":")[1] );
-				$("#inputMachineWidth").val(machineWidthMM);
+	case 'Loaded':
+		if(responseWords[1].startsWith("width")){
+			machineWidthMM = parseInt( responseWords[1].split(":")[1] );
+			$("#inputMachineWidth").val(machineWidthMM);
 
-			}else if(responseWords[1].startsWith("height")){
-				machineHeightMM = parseInt( responseWords[1].split(":")[1] );
-				$("#inputMachineHeight").val(machineHeightMM);
+		}else if(responseWords[1].startsWith("height")){
+			machineHeightMM = parseInt( responseWords[1].split(":")[1] );
+			$("#inputMachineHeight").val(machineHeightMM);
 
       }else if(responseWords[1].startsWith("mmPerRev")){
         mmPerRev = parseInt( responseWords[1].split(":")[1] );
@@ -1211,6 +1202,21 @@ function UploadMachineConfig(){
 	AddToQueue(`C37,${stepMultiplier},END`);
 }
 
+function OnMachineReady(){
+    // Fired when receives a 'ready' message from machine
+    statusElement.html(statusSuccessIcon);
+    isMachineReady = true;
+    if(!batchCompleted){
+      if(isQueueActive || waitingReadyAfterPause){
+        waitingReadyAfterPause = false;
+        batchDone ++;
+        if(batchDone >= batchTotal) QueueBatchComplete();
+        UpdateBatchPercent();
+      }
+    }
+}
+
+
 // *******
 //
 // Queue
@@ -1218,12 +1224,21 @@ function UploadMachineConfig(){
 // *******
 
 var externalQueueLength = 0;
+var queueUiLength = 51;
+var queueLastItem = $("#queue-last-item");
+
 function CheckQueue(){
 	// console.log("checking queue");
   if(isQueueActive && isMachineReady){
     if(machineQueue.length > 0){
-      SerialSend( machineQueue.shift() );
-  		$('#queue .item').first().remove()
+        SerialSend( machineQueue.shift() );
+        $('#queue .item').first().remove();
+        if(machineQueue.length > queueUiLength){
+            queueLastItem.before("<div class='queue item'><span class='cmd'>"+machineQueue[queueUiLength-1]+"</span><div class='ui divider'></div></div>");
+        }else{
+            queueLastItem.hide();
+        }
+
     }else{
 		// The queue is free!!
 		// Lets give it something to do
@@ -1248,10 +1263,6 @@ function CheckQueue(){
   }
   if(!workerAllowed) setTimeout(CheckQueue, 200); // If worker not allowed (visa problems? same) we'll have to do the job ourselves
 }
-
-
-var queueUiLength = 51;
-var queueLastItem = $("#queue-last-item");
 
 function AddToQueue(cmd){
     // console.time("AddToQueue");
