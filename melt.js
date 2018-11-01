@@ -321,14 +321,14 @@ function FabricInit(){
   	for(let i = 0; i <  points.length; i++){
   		if(i == 0){
   			// Es el primer punto
-  			AddToQueue("C14,UP,END") // pen lift
+  			melt.PenUp();
   			AddPixelCoordToQueue(points[i][2], points[i][1]);
-  			AddToQueue("C13,DOWN,END"); // pen down
+            melt.PenDown();
 
   		}else if(i == points.length-1){
   			// es el ultimo punto
   			AddPixelCoordToQueue(points[i][2], points[i][1]);
-        		AddToQueue("C14,UP,END") // pen lift
+        		melt.PenUp();
   		}else{
   			// Es un punto normal
   			AddPixelCoordToQueue(points[i][2], points[i][1]);
@@ -422,11 +422,11 @@ function UiInit(){
   // })
 
   dom.get("#pen-lift").click(function(){
-  	SerialSend("C14,UP,END");
+    melt.PenUp(true); // True sets to now instead of queue
   })
 
   dom.get("#pen-drop").click(function(){
-  	SerialSend("C13,DOWN,END");
+  	melt.PenDown(true); // True sets to now instead of queue
   })
 
   $('#pause-queue').click(function(){
@@ -581,31 +581,35 @@ function UiInit(){
         // @see http://stackoverflow.com/a/3985882/517705
         var keyDownEvent = event || window.event,
             keycode = (keyDownEvent.which) ? keyDownEvent.which : keyDownEvent.keyCode;
-        var LEFT = 37, UP = 38, RIGHT = 39, DOWN = 40;
+        var LEFT = 37, UP = 38, RIGHT = 39, DOWN = 40, SPACEBAR = 32;
 
-        let flechitas = false;
+        let interaction = false;
 
         switch (keycode) {
             case LEFT:
                 SetNextPenPositionPixels(penPositionPixels.x - keyboardControlDeltaPx, penPositionPixels.y, true); // setting last param to true skips the queue
-                flechitas = true;
+                interaction = true;
                 break;
             case UP:
                 SetNextPenPositionPixels(penPositionPixels.x, penPositionPixels.y - keyboardControlDeltaPx, true);
-                flechitas = true;
+                interaction = true;
                 break;
             case RIGHT:
                 SetNextPenPositionPixels(penPositionPixels.x + keyboardControlDeltaPx, penPositionPixels.y, true);
-                flechitas = true;
+                interaction = true;
                 break;
             case DOWN:
                 SetNextPenPositionPixels(penPositionPixels.x, penPositionPixels.y + keyboardControlDeltaPx, true);
-                flechitas = true;
+                interaction = true;
                 break;
+            case SPACEBAR:
+                melt.TogglePenPosition();
+
+            break;
         }
-        if(flechitas){
-            event.stopPropagation();
-            event.preventDefault();
+        if(interaction){
+            keyDownEvent.stopPropagation();
+            keyDownEvent.preventDefault();
         }
     }
 
@@ -1356,6 +1360,7 @@ const Melt = class{
 	//
 	constructor(){
 		this.isDrawingPath = false;
+        this.isPenUp = true;
 		// if set to true it wont move the pen up and down after each shape
 	}
 	BeginShape(){
@@ -1364,18 +1369,36 @@ const Melt = class{
 	EndShape(){
 		this.isDrawingPath = false;
 	}
-	PenUp(){
-		AddToQueue("C14,UP,END") // pen lift
+	PenUp(now = false){ // the now param sends command right away. Otherwise, it is queued
+        if(now){
+            SerialSend("C14,UP,END");
+        }else{
+            AddToQueue("C14,UP,END"); // pen down
+        }
+        this.isPenUp = true;
 	}
-	PenDown(){
-		AddToQueue("C13,DOWN,END"); // pen down
+	PenDown(now = false){ // the now param sends command right away. Otherwise, it is queued
+        if(now){
+            SerialSend("C13,DOWN,END");
+        }else{
+            AddToQueue("C13,DOWN,END"); // pen down
+        }
+        this.isPenUp = false;
 	}
 
-  PenPosition(){
-    // returns pen position in mm (converted from penPositionPixels)
-    p = new Victor(penPositionPixels.x * pxToMMFactor, penPositionPixels.y * pxToMMFactor);
-    return p;
-  }
+    TogglePenPosition(){
+        if(this.isPenUp){
+            this.PenUp(true);
+        }else{
+            this.PenDown(true);
+        }
+    }
+
+    PenPosition(){
+        // returns pen position in mm (converted from penPositionPixels)
+        p = new Victor(penPositionPixels.x * pxToMMFactor, penPositionPixels.y * pxToMMFactor);
+        return p;
+    }
 
 	line(x1, y1, x2, y2){
 		/// <summary>Draws a line from (x1, y1) to (x2, y2). Positions should be set in millimetres. Warning! If called between StartPath() and EndPath(), pen will not be raised when moving to starting coordinate</summary>
@@ -1392,7 +1415,7 @@ const Melt = class{
 		AddMMCoordToQueue(x2,y2);
 
 		if( !this.isDrawingPath ){
-			this.PenDown();
+			this.PenUp();
 		}
 	}
 
