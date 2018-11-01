@@ -60,6 +60,24 @@ var currContent;
 var flask;
 var melt;
 
+
+// Caching jquery selectors
+// source: https://ttmm.io/tech/selector-caching-jquery/
+function Selector_Cache() {
+    var collection = {};
+    function get_from_cache( selector ) {
+        if ( undefined === collection[ selector ] ) {
+            collection[ selector ] = $( selector );
+        }
+        return collection[ selector ];
+    }
+    return { get: get_from_cache };
+}
+var dom = new Selector_Cache();
+// Usage $( '#element' ) becomes
+// dom.get( '#element' );
+
+
 $("document").ready(function(){
 // *************************
 // *  Call Main Functions  *
@@ -68,7 +86,6 @@ $("document").ready(function(){
     FabricInit();
     UiInit();
     codePluginInit();
-
     UpdateBatchPercent();
 }); // doc ready
 
@@ -91,8 +108,10 @@ function debug(){
     SetMachineDimensionsMM(1200, 800);
 }
 function p(txt){
-  console.log(txt);
+    // just a lazy shortcut
+    console.log(txt);
 }
+
 
 function MeltInit(){
     // SERIAL Start
@@ -322,40 +341,40 @@ function FabricInit(){
 function UiInit(){
 
   // Input console
-  $("#consoleInput").keyup(function(e){
+  dom.get("#consoleInput").keyup(function(e){
     let code = e.which; // recommended to use e.which, it's normalized across browsers
     if(code==13||code==176){
       // 13 es el Enter comun. 176 es el enter del keypad
       e.preventDefault();
-      let msg = $("#consoleInput").val();
+      let msg = dom.get("#consoleInput").val();
       if( msg == "") return;
       msg = msg.toUpperCase();
       SerialSend(msg);
       // WriteConsole(msg, false);
-      $("#consoleInput").val(""); // Vacío el input
+      dom.get("#consoleInput").val(""); // Vacío el input
       lastSentConsoleCmd = msg;
 
     }else if (code==38||code==104) {
       // Up arrow
       e.preventDefault();
       if(lastSentConsoleCmd != ""){
-        $("#consoleInput").val( lastSentConsoleCmd );
+        dom.get("#consoleInput").val( lastSentConsoleCmd );
       }
 
     }
   });
 
-  currContent = $("#content-control");
+  currContent = dom.get("#content-control");
 
-  $(".main-menu-link").click(function(){
+  dom.get(".main-menu-link").click(function(){
 
     let href = $(this).data("panel");
-    let newContent = $("#content-"+href);
+    let newContent = dom.get("#content-"+href);
     // if( currContent != newContent ){
     currContent.hide();
     newContent.show();
     if(href == "console"){
-      $("#console").scrollTop($("#console")[0].scrollHeight); // Scroleo para abajo de todo
+      dom.get("#console").scrollTop(dom.get("#console")[0].scrollHeight); // Scroleo para abajo de todo
 
       }else if(href == "tools"){
         ExitEditorMode();
@@ -375,7 +394,7 @@ function UiInit(){
         }
       });
 
-  $("#serial_connections").on("click", ".button", function(){
+  dom.get("#serial_connections").on("click", ".button", function(){
     if(serial.isConnected()){
       serial.close();
     }
@@ -385,28 +404,28 @@ function UiInit(){
     portName = $(this).data("connectto");
     console.log("Connectando a ", portName);
     serial.open(portName, serialOptions);
-    $("#connected_to").html(portName);
+    dom.get("#connected_to").html(portName);
   })
 
-  $(".serial_reconnect").click(function(){
+  dom.get(".serial_reconnect").click(function(){
     socketReceivedPortList(serial.list());
   })
 
   $('.mypopup').popup();
 
-  $("#set-custom-postion").click(function(){
+  dom.get("#set-custom-postion").click(function(){
   	isSettingPenPos = true;
   })
 
-  // $("#control-pen-position").click(function(){
+  // dom.get("#control-pen-position").click(function(){
   // 	isSettingNewPenPosition = true;
   // })
 
-  $("#pen-lift").click(function(){
+  dom.get("#pen-lift").click(function(){
   	SerialSend("C14,UP,END");
   })
 
-  $("#pen-drop").click(function(){
+  dom.get("#pen-drop").click(function(){
   	SerialSend("C13,DOWN,END");
   })
 
@@ -429,15 +448,15 @@ function UiInit(){
   	$('#queue').html('');
   });
 
-  $("#queue-progress").progress({
+  dom.get("#queue-progress").progress({
     percent: 100
   });
 
-  $("#run-code-button").click(function(){
+  dom.get("#run-code-button").click(function(){
       if(!isRunningCode) CheckCode();
   })
 
-	$(".run-code-updown").click(function(){
+	dom.get(".run-code-updown").click(function(){
 	  if( $(this).children().hasClass("up") ){
 	    codeRepetitions ++;
 	     }else{
@@ -455,7 +474,7 @@ function UiInit(){
 	}  else{
 	    txt = "Draw "+ codeRepetitions +" times";
 	  }
-	  $("#run-code-button span").html(txt);
+	  dom.get("#run-code-button span").html(txt);
 	}
 	refButton();
 
@@ -465,7 +484,7 @@ function UiInit(){
         shape: "melt.beginShape();\n\// Your vertices\n\melt.endShape();",
         penposition: "(PenPosition().x, PenPosition().y);",
     }
-    $(".codeTools").click(function(){
+    dom.get(".codeTools").click(function(){
         let tool = $(this).data("toolname");
         let action = $(this).data("toolaction");
         let snippet = $(this).data("toolsnippet");
@@ -477,23 +496,23 @@ function UiInit(){
         editor.focus()
     })
 
-    $("#reveal-code").click(function(){
+    dom.get("#reveal-code").click(function(){
         EnterEditorMode();
     })
 
     function EnterEditorMode(){
-        $("#editor-container").slideDown();
-        $("#tools-buttons").hide();
+        dom.get("#editor-container").slideDown();
+        dom.get("#tools-buttons").hide();
         editor.focus()
     }
     function ExitEditorMode(){
-        $("#tools-buttons").slideDown();
-        $("#editor-container").hide();
+        dom.get("#tools-buttons").slideDown();
+        dom.get("#editor-container").hide();
     }
 
 
     // Custom toggle callback implementation
-    $(".myToggle").click(function(){
+    dom.get(".myToggle").click(function(){
         if(currToggleEl){
             if( $(this).attr("id") == $(currToggleEl).attr("id") ){
                 // Deselect current toggle
@@ -518,40 +537,40 @@ function UiInit(){
         }
     });
 
-    $(".deactivateToggle").click(function(){
+    dom.get(".deactivateToggle").click(function(){
         DeactivateToggles();
     });
 
     // Setting the callbacks to their specific actions
-    $("#tools-free-draw").on("toggleSelect", function(){
+    dom.get("#tools-free-draw").on("toggleSelect", function(){
         canvas.isDrawingMode = true;
     })
-    $("#tools-free-draw").on("toggleDeselect", function(){
+    dom.get("#tools-free-draw").on("toggleDeselect", function(){
         canvas.isDrawingMode = true;
     })
 
 
 
-    $("#control-pen-position").on("toggleSelect", function(){
+    dom.get("#control-pen-position").on("toggleSelect", function(){
         isSettingNewPenPosition = true;
     })
-    $("#control-pen-position").on("toggleDeselect", function(){
+    dom.get("#control-pen-position").on("toggleDeselect", function(){
         isSettingNewPenPosition = false;
     })
 
 
-    $("#keyboard-control").on("toggleSelect", function(){
+    dom.get("#keyboard-control").on("toggleSelect", function(){
         isKeyboardControlling = true;
-        $("#keyboard-control-container").slideDown();
+        dom.get("#keyboard-control-container").slideDown();
     })
-    $("#keyboard-control").on("toggleDeselect", function(){
+    dom.get("#keyboard-control").on("toggleDeselect", function(){
         isKeyboardControlling = false;
-        $("#keyboard-control-container").slideUp();
+        dom.get("#keyboard-control-container").slideUp();
     })
 
-    $("#keyboard-input-mm").val( keyboardControlDeltaPx * pxToMMFactor );
-    $("#keyboard-input-px").val( keyboardControlDeltaPx);
-    $("#keyboard-input-steps").val( keyboardControlDeltaPx * stepsPerMM);
+    dom.get("#keyboard-input-mm").val( keyboardControlDeltaPx * pxToMMFactor );
+    dom.get("#keyboard-input-px").val( keyboardControlDeltaPx);
+    dom.get("#keyboard-input-steps").val( keyboardControlDeltaPx * stepsPerMM);
 
 
     // Keyboard movement
@@ -590,7 +609,7 @@ function UiInit(){
         }
     }
 
-	$("#uploadMachineConfig").click(function(){
+	dom.get("#uploadMachineConfig").click(function(){
 		UploadMachineConfig();
 	})
 
@@ -605,10 +624,10 @@ function DeactivateToggles(){
     }
 }
 function EnableWorkspace(){
-  $("#dimmerEl").removeClass("active");
+  dom.get("#dimmerEl").removeClass("active");
 }
 function DisableWorkspace(){
-  $("#dimmerEl").addClass("active");
+  dom.get("#dimmerEl").addClass("active");
 }
 
 function DrawGrid(){
@@ -806,41 +825,36 @@ function UpdatePositionMetadata(vec){
     motorLineRight.set({'x2': vec.x, 'y2': vec.y });
     motorLineLeft.set({'x2': vec.x, 'y2': vec.y});
 
-    $("#canvasMetaData .x").html( Math.round(vec.x) );
-    $("#canvasMetaData .y").html( Math.round(vec.y) );
+    dom.get("#canvasMetaData .x").html( Math.round(vec.x) );
+    dom.get("#canvasMetaData .y").html( Math.round(vec.y) );
 
-    $("#canvasMetaData .xmm").html( (vec.x * pxToMMFactor).toFixed(1) );
-    $("#canvasMetaData .ymm").html( (vec.y * pxToMMFactor).toFixed(1) );
+    dom.get("#canvasMetaData .xmm").html( (vec.x * pxToMMFactor).toFixed(1) );
+    dom.get("#canvasMetaData .ymm").html( (vec.y * pxToMMFactor).toFixed(1) );
 
     let disToLMotor = vec.distance(leftMotorPositionPixels);
-    $("#canvasMetaData .lmotomm").html( (disToLMotor * pxToMMFactor).toFixed(1) );
-    $("#canvasMetaData .lmotosteps").html( (disToLMotor *  pxPerStep).toFixed(1));
+    dom.get("#canvasMetaData .lmotomm").html( (disToLMotor * pxToMMFactor).toFixed(1) );
+    dom.get("#canvasMetaData .lmotosteps").html( (disToLMotor *  pxPerStep).toFixed(1));
 
     let disToRMotor = vec.distance(rightMotorPositionPixels);
-    $("#canvasMetaData .rmotomm").html( (disToRMotor * pxToMMFactor).toFixed(1) );
-    $("#canvasMetaData .rmotosteps").html( (disToRMotor *  pxPerStep).toFixed(1));
+    dom.get("#canvasMetaData .rmotomm").html( (disToRMotor * pxToMMFactor).toFixed(1) );
+    dom.get("#canvasMetaData .rmotosteps").html( (disToRMotor *  pxPerStep).toFixed(1));
 
     canvasNeedsRender = true;
 }
 
 
-// We are connected and ready to go
+
 function serverConnected() {
     console.log("We are connected!");
 	wsConnected = true;
-	$("#ws-alert").hide();
-}
-function CheckWsConnection(){
-	if(!wsConnected){
-		$("#ws-alert").slideDown();
-	}
+	dom.get("#ws-alert").hide();
 }
 
 // Got the list of ports
 function gotList(thelist) {
   $('.ui.basic.modal').modal('show');
   // theList is an array of their names
-  $("#serial_connections").html("");
+  dom.get("#serial_connections").html("");
   let serialConnectionsContent = "";
   for (var i = 0; i < thelist.length; i++) {
     // Display in the console
@@ -850,26 +864,9 @@ function gotList(thelist) {
     }
     serialConnectionsContent += '<div class="ui green basic cancel inverted button" data-connectto="'+ thelist[i] +'"><i class="'+icon+' icon"></i> '+thelist[i]+'</div>';
   }
-  $("#serial_connections").html(serialConnectionsContent);
+  dom.get("#serial_connections").html(serialConnectionsContent);
 }
 
-
-// Connected to our serial device
-function gotOpen() {
-  console.log("Serial Port is open!");
-}
-
-// Ut oh, here is an error, let's log it
-function gotError(theerror) {
-	statusElement.html(statusErrorIcon);
-}
-
-function p(txt){
-  console.log(txt);
-}
-
-var lastReceivedString = "";
-var lastSentConsoleCmd = ""; // TODO hacer de esto un array
 
 // *********************
 //
@@ -883,6 +880,8 @@ function SerialSend(cmd){
   isMachineReady = false;
   WriteConsole(cmd)
 }
+
+var lastReceivedString = "";
 
 function SerialReceive() {
   var currentString = serial.readStringUntil("\r\n");
@@ -907,31 +906,31 @@ function SerialReceive() {
 	case 'Loaded':
 		if(responseWords[1].startsWith("width")){
 			machineWidthMM = parseInt( responseWords[1].split(":")[1] );
-			$("#inputMachineWidth").val(machineWidthMM);
+			dom.get("#inputMachineWidth").val(machineWidthMM);
 
 		}else if(responseWords[1].startsWith("height")){
 			machineHeightMM = parseInt( responseWords[1].split(":")[1] );
-			$("#inputMachineHeight").val(machineHeightMM);
+			dom.get("#inputMachineHeight").val(machineHeightMM);
 
       }else if(responseWords[1].startsWith("mmPerRev")){
         mmPerRev = parseInt( responseWords[1].split(":")[1] );
-        $("#inputMmPerRev").val(mmPerRev);
+        dom.get("#inputMmPerRev").val(mmPerRev);
 
 			}else if(responseWords[1] == "steps" && responseWords[2] == "per" ){
 				stepsPerRev = parseInt( responseWords[3].split(":")[1] );
-				$("#inputStepsPerRev").val(stepsPerRev);
+				dom.get("#inputStepsPerRev").val(stepsPerRev);
 
 			}else if(responseWords[1] =="step"  && responseWords[2].startsWith("multiplier")){
 				stepMultiplier = parseInt( responseWords[2].split(":")[1] );
-				$("#inputStepMultiplier").val(stepMultiplier);
+				dom.get("#inputStepMultiplier").val(stepMultiplier);
 
 			}else if(responseWords[1] == "down"){
 				downPos = parseInt( responseWords[2].split(":")[1] );
-				$("#inputDownPos").val(downPos);
+				dom.get("#inputDownPos").val(downPos);
 
 			}else if(responseWords[1] == "up"){
 				upPos = parseInt( responseWords[2].split(":")[1] );
-				$("#inputUpPos").val(upPos);
+				dom.get("#inputUpPos").val(upPos);
 			}
 			break;
 
@@ -940,16 +939,16 @@ function SerialReceive() {
 				mmPerStep = parseFloat(responseWords[2].slice(0,-2).substring(1))
 				stepsPerMM = parseFloat(responseWords[4].slice(0,-1).substring(1))
 
-				$("#inputMmPerStep").val(mmPerStep);
-				$("#inputStepsPerMM").val(stepsPerMM);
+				dom.get("#inputMmPerStep").val(mmPerStep);
+				dom.get("#inputStepsPerMM").val(stepsPerMM);
 
 			}else if(responseWords[1] == "pageWidth"){
 				pageWidth = parseInt( responseWords[4].slice(0,-1).substring(1) );
-				$("#inputPageWidthSteps").val(pageWidth);
+				dom.get("#inputPageWidthSteps").val(pageWidth);
 
 			}else if(responseWords[1] == "pageHeight"){
 				pageHeight = parseInt( responseWords[4].slice(0,-1).substring(1) );
-				$("#inputPageHeightSteps").val(pageHeight);
+				dom.get("#inputPageHeightSteps").val(pageHeight);
 
 				// This is the last received data, so now I recalculate
 				SetMachineDimensionsMM(machineWidthMM, machineHeightMM);
@@ -973,27 +972,27 @@ function SerialReceive() {
       motorMaxSpeed = parseInt( responseWords[1] );
       motorAcceleration = parseInt( responseWords[2] );
 
-      $("#inputMaxSpeed").val(motorMaxSpeed);
-      $("#inputAcceleration").val(motorAcceleration);
+      dom.get("#inputMaxSpeed").val(motorMaxSpeed);
+      dom.get("#inputAcceleration").val(motorAcceleration);
 
     break;
 	}
   // end parse response
 
   if(currentString == lastReceivedString){
-    let lastLog = $(".log:last-child");
+    let lastLog = dom.get(".log:last-child");
     let repetitions = lastLog.data("repeated");
     repetitions++;
     lastLog.data("repeated", repetitions);
-    $(".log:last-child .content").html( "(" + repetitions + ") " + currentString);
+    dom.get(".log:last-child .content").html( "(" + repetitions + ") " + currentString);
     return;
   }
   WriteConsole(currentString, true);
   lastReceivedString = currentString;
 } // SerialReceive
 
-var lastReceivedString = "";
 var lastSentConsoleCmd = ""; // TODO hacer de esto un array
+var consoleDomElement = dom.get("#console");
 
 function WriteConsole(txt, received = false){
   let icon, clase = "log";
@@ -1005,12 +1004,12 @@ function WriteConsole(txt, received = false){
   txt = '<span class="content">' + txt + '</span>';
 
   let msg = "<div data-repeated='0' class='" + clase + "'>" + icon + txt  + "</div>";
-  $("#console").append(msg);
-  // $("#console").scrollTop($("#console")[0].scrollHeight); // Scroleo para abajo de todo
+  dom.get("#console").append(msg);
 
-  if($("#console").children().length > 200){
+  // dom.get("#console").scrollTop(dom.get("#console")[0].scrollHeight); // Scroleo para abajo de todo
+  if(dom.get("#console").children().length > 100){
     // Limit the amount of console history
-    $("#console").children().first().remove();
+    dom.get("#console").children().first().remove();
   }
 }
 
@@ -1018,7 +1017,7 @@ function WriteConsole(txt, received = false){
 function socketReceivedPortList(thelist) {
   $('.ui.basic.modal').modal('show');
   // theList is an array of their names
-  $("#serial_connections").html("");
+  dom.get("#serial_connections").html("");
   let serialConnectionsContent = "";
   for (var i = 0; i < thelist.length; i++) {
     // Display in the console
@@ -1028,16 +1027,16 @@ function socketReceivedPortList(thelist) {
     }
     serialConnectionsContent += '<div class="ui green basic cancel inverted button" data-connectto="'+ thelist[i] +'"><i class="'+icon+' icon"></i> '+thelist[i]+'</div>';
   }
-  $("#serial_connections").html(serialConnectionsContent);
+  dom.get("#serial_connections").html(serialConnectionsContent);
 }
 
 function socketConnected() {
 	wsConnected = true;
-	$("#ws-alert").hide();
+	dom.get("#ws-alert").hide();
 }
 function CheckWsConnection(){
 	if(!wsConnected){
-		$("#ws-alert").slideDown();
+		dom.get("#ws-alert").slideDown();
 	}
 }
 // Connected to our serial device
@@ -1158,47 +1157,47 @@ function UpdatePositionMetadata(vec){
     motorLineRight.set({'x2': vec.x, 'y2': vec.y });
     motorLineLeft.set({'x2': vec.x, 'y2': vec.y});
 
-    $("#canvasMetaData .x").html( Math.round(vec.x) );
-    $("#canvasMetaData .y").html( Math.round(vec.y) );
+    dom.get("#canvasMetaData .x").html( Math.round(vec.x) );
+    dom.get("#canvasMetaData .y").html( Math.round(vec.y) );
 
-    $("#canvasMetaData .xmm").html( (vec.x * pxToMMFactor).toFixed(1) );
-    $("#canvasMetaData .ymm").html( (vec.y * pxToMMFactor).toFixed(1) );
+    dom.get("#canvasMetaData .xmm").html( (vec.x * pxToMMFactor).toFixed(1) );
+    dom.get("#canvasMetaData .ymm").html( (vec.y * pxToMMFactor).toFixed(1) );
 
     let disToLMotor = vec.distance(leftMotorPositionPixels);
-    $("#canvasMetaData .lmotomm").html( (disToLMotor * pxToMMFactor).toFixed(1) );
-    $("#canvasMetaData .lmotosteps").html( (disToLMotor *  pxPerStep).toFixed(1));
+    dom.get("#canvasMetaData .lmotomm").html( (disToLMotor * pxToMMFactor).toFixed(1) );
+    dom.get("#canvasMetaData .lmotosteps").html( (disToLMotor *  pxPerStep).toFixed(1));
 
     let disToRMotor = vec.distance(rightMotorPositionPixels);
-    $("#canvasMetaData .rmotomm").html( (disToRMotor * pxToMMFactor).toFixed(1) );
-    $("#canvasMetaData .rmotosteps").html( (disToRMotor *  pxPerStep).toFixed(1));
+    dom.get("#canvasMetaData .rmotomm").html( (disToRMotor * pxToMMFactor).toFixed(1) );
+    dom.get("#canvasMetaData .rmotosteps").html( (disToRMotor *  pxPerStep).toFixed(1));
 
     canvasNeedsRender = true;
 }
 
 function UploadMachineConfig(){
 	// Set machine size
-	machineWidthMM 	= $("#inputMachineWidth").val();
-	machineHeightMM	= $("#inputMachineHeight").val();
+	machineWidthMM 	= dom.get("#inputMachineWidth").val();
+	machineHeightMM	= dom.get("#inputMachineHeight").val();
 	AddToQueue(`C24,${machineWidthMM},${machineHeightMM},END`);
 
 	// Set machine millimetre extension per motor revolution (MM Per Rev)
-	mmPerRev = $("#inputMmPerRev").val();
+	mmPerRev = dom.get("#inputMmPerRev").val();
 	AddToQueue(`C29,${mmPerRev},END`);
 
 	// Set motor steps per revolution:
-	stepsPerRev = $("#inputStepsPerRev").val();
+	stepsPerRev = dom.get("#inputStepsPerRev").val();
 	AddToQueue(`C30,${stepsPerRev},END`);
 
 	// maximum motor speed
-	motorMaxSpeed = $("#inputMaxSpeed").val();
+	motorMaxSpeed = dom.get("#inputMaxSpeed").val();
 	AddToQueue(`C31,${motorMaxSpeed},END`);
 
 	//  motor Acceleration
-	motorAcceleration = $("#inputAcceleration").val();
+	motorAcceleration = dom.get("#inputAcceleration").val();
 	AddToQueue(`C32,${motorAcceleration},END`);
 
 	// step multiplier
-	stepMultiplier = $("#inputStepMultiplier").val();
+	stepMultiplier = dom.get("#inputStepMultiplier").val();
 	AddToQueue(`C37,${stepMultiplier},END`);
 }
 
@@ -1225,7 +1224,6 @@ function OnMachineReady(){
 
 var externalQueueLength = 0;
 var queueUiLength = 51;
-var queueLastItem = $("#queue-last-item");
 
 function CheckQueue(){
 	// console.log("checking queue");
@@ -1234,9 +1232,9 @@ function CheckQueue(){
         SerialSend( machineQueue.shift() );
         $('#queue .item').first().remove();
         if(machineQueue.length > queueUiLength){
-            queueLastItem.before("<div class='queue item'><span class='cmd'>"+machineQueue[queueUiLength-1]+"</span><div class='ui divider'></div></div>");
+            dom.get("#queue-last-item").before("<div class='queue item'><span class='cmd'>"+machineQueue[queueUiLength-1]+"</span><div class='ui divider'></div></div>");
         }else{
-            queueLastItem.hide();
+            dom.get("#queue-last-item").hide();
         }
 
     }else{
@@ -1276,10 +1274,10 @@ function AddToQueue(cmd){
 
   if(machineQueue.length < queueUiLength){
       // If UI queue is not populated, lets add it
-      queueLastItem.before("<div class='queue item'><span class='cmd'>"+cmd+"</span><div class='ui divider'></div></div>");
-      // $("#queue").append();
+      dom.get("#queue-last-item").before("<div class='queue item'><span class='cmd'>"+cmd+"</span><div class='ui divider'></div></div>");
+      // dom.get("#queue").append();
   }else{
-      queueLastItem.show();
+      dom.get("#queue-last-item").show();
   }
 }
 
@@ -1294,10 +1292,10 @@ function UpdateBatchPercent(){
   }else{
     batchPercent = 100;
   }
-  $("#queue-progress").progress({percent: batchPercent});
+  dom.get("#queue-progress").progress({percent: batchPercent});
 
-  if( $(queueLastItem).is(":visible") ){
-      $("#queueRemaining").html( machineQueue.length - queueUiLength );
+  if( $(dom.get("#queue-last-item")).is(":visible") ){
+      dom.get("#queueRemaining").html( machineQueue.length - queueUiLength );
   }
 
   setTimeout(UpdateBatchPercent, 1000); // Check batch progress every second
@@ -1329,7 +1327,7 @@ function FormatBatchElapsed(){
   diff.minutes = Math.floor(elapsed / 60 % 60);
   diff.seconds = Math.floor(elapsed % 60);
   let msg = diff.hours +"h "+ diff.minutes +"m "+ diff.seconds +"s"
-  $("#elapsed-time").html(msg);
+  dom.get("#elapsed-time").html(msg);
 }
 
 
@@ -1439,20 +1437,20 @@ function CheckCode(){
             // didnt pass try catch
               codeError = e;
               delay = 4000;
-              $("#run-code-check-error span").html(codeError).delay(delay).html("");
-              $("#run-code-check-error").show(0).delay(delay).hide(0);
+              dom.get("#run-code-check-error span").html(codeError).delay(delay).html("");
+              dom.get("#run-code-check-error").show(0).delay(delay).hide(0);
           }
         }
 
     }else{
-        $("#run-code-check-error").show(0).delay(2000).hide(0);
+        dom.get("#run-code-check-error").show(0).delay(2000).hide(0);
     }
 }
 
 function EvalCode(){
 	eval(codeStr); // Actually interprets string as javascript
 	console.log('code evaluated');
-	$("#remaining-repetitions span").html(remainingCodeRepetitions);
+	dom.get("#remaining-repetitions span").html(remainingCodeRepetitions);
 	console
 	if(machineQueue.length == 0){
 		// the code executed succesfully but theres nothing on the queue
@@ -1463,27 +1461,27 @@ function EvalCode(){
 function StartedDrawingCode(){
 	if(codeRepetitions == 0){
 		isRunningCodeForever = true;
-		$("#stop-code-loop").show();
+		dom.get("#stop-code-loop").show();
 	}else if(codeRepetitions > 1){
 		remainingCodeRepetitions = codeRepetitions;
-		$("#remaining-repetitions").show();
-		$("#remaining-repetitions span").html(remainingCodeRepetitions);
+		dom.get("#remaining-repetitions").show();
+		dom.get("#remaining-repetitions span").html(remainingCodeRepetitions);
 	}else{
 		// only once
 		remainingCodeRepetitions = 0;
 	}
 	isRunningCode = true;
-	$("#codeStatusIcon").hide();
-	$("#run-code-button").addClass("disabled");
-	$(".run-code-updown").addClass("disabled");
+	dom.get("#codeStatusIcon").hide();
+	dom.get("#run-code-button").addClass("disabled");
+	dom.get(".run-code-updown").addClass("disabled");
 }
 function EndedDrawingCode(){
 	isRunningCode = false;
 	isRunningCodeForever = false;
-	$("#run-code-button").removeClass("disabled");
-	$(".run-code-updown").removeClass("disabled");
-	$("#stop-code-loop").hide();
-	$("#remaining-repetitions").hide();
+	dom.get("#run-code-button").removeClass("disabled");
+	dom.get(".run-code-updown").removeClass("disabled");
+	dom.get("#stop-code-loop").hide();
+	dom.get("#remaining-repetitions").hide();
 }
 
 var test = [];
