@@ -1259,7 +1259,6 @@ function CheckQueue(){
       canvas.renderAll();
       canvasNeedsRender = false;
   }
-  if(!workerAllowed) setTimeout(CheckQueue, 200); // If worker not allowed (visa problems? same) we'll have to do the job ourselves
 }
 
 function AddToQueue(cmd){
@@ -1287,18 +1286,22 @@ var millisBatchStarted, millisBatchEnded, batchCompleted = false;
 
 function UpdateBatchPercent(){
   // TODO: show elapsed time
+  let newBatchPercent;
+
   if(batchTotal > 0){
-    batchPercent = batchDone / batchTotal * 100;
+    newBatchPercent = batchDone / batchTotal * 100;
   }else{
-    batchPercent = 100;
+    newBatchPercent = 100;
   }
-  dom.get("#queue-progress").progress({percent: batchPercent});
+  if( newBatchPercent != batchPercent){
+      // By only doing this on different values I assure a proper animation on the progress bar
+      dom.get("#queue-progress").progress({percent: batchPercent});
+      batchPercent = newBatchPercent;
+  }
 
   if( $(dom.get("#queue-last-item")).is(":visible") ){
       dom.get("#queueRemaining").html( machineQueue.length - queueUiLength );
   }
-
-  setTimeout(UpdateBatchPercent, 1000); // Check batch progress every second
 }
 
 function NewQueueBatch(){
