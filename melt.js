@@ -444,7 +444,7 @@ function UiInit(){
   $('#clear-queue').click(function(){
   	machineQueue = [];
     lastQueueCmd = "";
-    NewQueueBatch();
+    batchCompleted();
   	$('#queue').html('');
   });
 
@@ -604,7 +604,7 @@ function UiInit(){
                 break;
             case SPACEBAR:
                 melt.TogglePenPosition();
-
+                interaction = true;
             break;
         }
         if(interaction){
