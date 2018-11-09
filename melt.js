@@ -1269,21 +1269,16 @@ function CheckQueue(){
 function AddToQueue(cmd){
     // console.time("AddToQueue");
   if(cmd == lastQueueCmd) return "Command ignored for being identical to previous"; // Avoid two equal commands to be sent
-  p("1");
   machineQueue.push(cmd);
   lastQueueCmd = cmd;
   // console.timeEnd("AddToQueue");
   if(batchCompleted) NewQueueBatch();
   batchTotal++;
-p("2");
   if(machineQueue.length < queueUiLength){
-      p("3");
-      console.log("asd");
       // If UI queue is not populated, lets add it
       $("#queue-last-item").before("<div class='queue item'><span class='cmd'>"+cmd+"</span><div class='ui divider'></div></div>");
       // dom.get("#queue").append();
   }else{
-      p("4");
       dom.get("#queue-last-item").show();
   }
 }
