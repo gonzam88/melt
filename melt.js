@@ -587,6 +587,7 @@ function UiInit(){
         let interaction = false;
 
         switch (keycode) {
+
             case LEFT:
                 SetNextPenPositionPixels(penPositionPixels.x - keyboardControlDeltaPx, penPositionPixels.y, true); // setting last param to true skips the queue
                 interaction = true;
@@ -604,7 +605,7 @@ function UiInit(){
                 interaction = true;
                 break;
             case SPACEBAR:
-                melt.TogglePenPosition();
+                melt.TogglePen();
                 interaction = true;
             break;
         }
@@ -1385,12 +1386,13 @@ const Melt = class{
         this.isPenUp = false;
 	}
 
-    TogglePenPosition(){
+    TogglePen(){
         if(this.isPenUp){
-            this.PenUp(true);
-        }else{
             this.PenDown(true);
+        }else{
+            this.PenUp(true);
         }
+        this.isPenUp != this.isPenUp;
     }
 
     PenPosition(){
@@ -1449,7 +1451,6 @@ const Melt = class{
         // console.timeEnd("ellipse");
 		AddMMCoordToQueue(this.cachedFirstVx.x, this.cachedFirstVx.y);
 		this.PenUp();
-
 	}
 }
 
