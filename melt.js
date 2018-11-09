@@ -40,7 +40,7 @@ var statusElement = $("#statusAlert");
 var currToggleEl, workerAllowed = false;
 
 var canvas, canvasNeedsRender = false;
-var appRefreshRate = 150; // in millis
+var appRefreshRate = 500; // in millis
 var motorLineRight, motorLineLeft, motorRightCircle, motorLeftCircle, machineSquare;
 var mouseVector = new Victor(0,0);
 var isSettingPenPos = false;
@@ -339,7 +339,7 @@ function FabricInit(){
 } // fabric init
 
 function UiInit(){
-  queueEmptyContent = $("#queue");
+  queueEmptyContent = $("#queue").html();
   // Input console
   dom.get("#consoleInput").keyup(function(e){
     let code = e.which; // recommended to use e.which, it's normalized across browsers
@@ -453,7 +453,8 @@ function UiInit(){
   });
 
   dom.get("#run-code-button").click(function(){
-      if(!isRunningCode) CheckCode();
+      // if(!isRunningCode)
+      CheckCode();
   })
 
 	dom.get(".run-code-updown").click(function(){
@@ -1244,18 +1245,18 @@ function CheckQueue(){
     }else{
 		// The queue is free!!
 		// Lets give it something to do
-		if(isRunningCode){
-			if(isRunningCodeForever){
-				EvalCode();
-			}else{
-				if(remainingCodeRepetitions == 0){
-					EndedDrawingCode();
-				}else{
-					remainingCodeRepetitions--;
-					EvalCode();
-				}
-			}
-		}
+		// if(isRunningCode){
+		// 	if(isRunningCodeForever){
+		// 		EvalCode();
+		// 	}else{
+		// 		if(remainingCodeRepetitions == 0){
+		// 			EndedDrawingCode();
+		// 		}else{
+		// 			remainingCodeRepetitions--;
+		// 			EvalCode();
+		// 		}
+		// 	}
+		// }
 	}
   }
   FormatBatchElapsed();
@@ -1268,18 +1269,21 @@ function CheckQueue(){
 function AddToQueue(cmd){
     // console.time("AddToQueue");
   if(cmd == lastQueueCmd) return "Command ignored for being identical to previous"; // Avoid two equal commands to be sent
-
+  p("1");
   machineQueue.push(cmd);
   lastQueueCmd = cmd;
   // console.timeEnd("AddToQueue");
   if(batchCompleted) NewQueueBatch();
   batchTotal++;
-
+p("2");
   if(machineQueue.length < queueUiLength){
+      p("3");
+      console.log("asd");
       // If UI queue is not populated, lets add it
-      dom.get("#queue-last-item").before("<div class='queue item'><span class='cmd'>"+cmd+"</span><div class='ui divider'></div></div>");
+      $("#queue-last-item").before("<div class='queue item'><span class='cmd'>"+cmd+"</span><div class='ui divider'></div></div>");
       // dom.get("#queue").append();
   }else{
+      p("4");
       dom.get("#queue-last-item").show();
   }
 }
@@ -1456,8 +1460,8 @@ const Melt = class{
 
 var codeError = "";
 var codeStr;
-var isRunningCode = false;
-var codeRepetitions = 1, remainingCodeRepetitions, isRunningCodeForever = false;
+// var isRunningCode = false;
+var codeRepetitions = 1, remainingCodeRepetitions; //isRunningCodeForever = false;
 
 function CheckCode(){
 
