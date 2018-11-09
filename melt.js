@@ -59,7 +59,7 @@ var currContent;
 
 var flask;
 var melt;
-
+var queueEmptyContent;
 
 // Caching jquery selectors
 // source: https://ttmm.io/tech/selector-caching-jquery/
@@ -339,7 +339,7 @@ function FabricInit(){
 } // fabric init
 
 function UiInit(){
-
+  queueEmptyContent = $("#queue");
   // Input console
   dom.get("#consoleInput").keyup(function(e){
     let code = e.which; // recommended to use e.which, it's normalized across browsers
@@ -444,8 +444,8 @@ function UiInit(){
   $('#clear-queue').click(function(){
   	machineQueue = [];
     lastQueueCmd = "";
-    batchCompleted();
-  	$('#queue').html('');
+    QueueBatchComplete();
+  	dom.get('#queue').html( queueEmptyContent );
   });
 
   dom.get("#queue-progress").progress({
@@ -1400,19 +1400,27 @@ const Melt = class{
         return p;
     }
 
-	line(x1, y1, x2, y2){
+	line(x1, y1, x2, y2, thickness = 1){
 		/// <summary>Draws a line from (x1, y1) to (x2, y2). Positions should be set in millimetres. Warning! If called between StartPath() and EndPath(), pen will not be raised when moving to starting coordinate</summary>
+    if(thickness < 1) thickness = 1;
+    thickness = parseInt(thickness);
+
 		if( !this.isDrawingPath ){
 			this.PenUp();
 		}
 
-		AddMMCoordToQueue(x1,y1);
-
-		if( !this.isDrawingPath ){
-			this.PenDown();
-		}
-
-		AddMMCoordToQueue(x2,y2);
+    // Width means going over the same line several times
+    for(let i = 0; i < thickness; i++){
+      if(isEven(i) && thickness > 1){
+        AddMMCoordToQueue(x2,y2);
+  			if(i==0) this.PenDown();
+    		AddMMCoordToQueue(x1,y1);
+      }else{
+        AddMMCoordToQueue(x1,y1);
+  			if(i==0) this.PenDown();
+    		AddMMCoordToQueue(x2,y2);
+      }
+    }
 
 		if( !this.isDrawingPath ){
 			this.PenUp();
@@ -1487,7 +1495,7 @@ function EvalCode(){
 function StartedDrawingCode(){
 	if(codeRepetitions == 0){
 		isRunningCodeForever = true;
-		dom.get("#stop-code-loop").show();
+		// dom.get("#stop-code-loop").show();
 	}else if(codeRepetitions > 1){
 		remainingCodeRepetitions = codeRepetitions;
 		dom.get("#remaining-repetitions").show();
@@ -1498,14 +1506,14 @@ function StartedDrawingCode(){
 	}
 	isRunningCode = true;
 	dom.get("#codeStatusIcon").hide();
-	dom.get("#run-code-button").addClass("disabled");
-	dom.get(".run-code-updown").addClass("disabled");
+	// dom.get("#run-code-button").addClass("disabled");
+	// dom.get(".run-code-updown").addClass("disabled");
 }
 function EndedDrawingCode(){
 	isRunningCode = false;
 	isRunningCodeForever = false;
-	dom.get("#run-code-button").removeClass("disabled");
-	dom.get(".run-code-updown").removeClass("disabled");
+	// dom.get("#run-code-button").removeClass("disabled");
+	// dom.get(".run-code-updown").removeClass("disabled");
 	dom.get("#stop-code-loop").hide();
 	dom.get("#remaining-repetitions").hide();
 }
@@ -1533,4 +1541,13 @@ function DrawSomething(){
     function LtR(x,y){
         melt.line(x+xoff+grid, y+yoff, x+xoff, y+yoff+grid);
     }
+}
+
+
+function isEven(n) {
+   return n % 2 == 0;
+}
+
+function isOdd(n) {
+   return Math.abs(n % 2) == 1;
 }
