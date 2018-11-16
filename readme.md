@@ -22,7 +22,8 @@ Because a web page can't communicate through the serial port I use the p5.serial
 (This is the polargraph serial port baud rate)
 3. [Download and install node.js](https://nodejs.org/en/download/)
 4. There are many ways to install, described on their docs site. This is the simplest. in Terminal / Command Line:
-```cd path/to/p5.serialport
+```
+cd path/to/p5.serialport
 npm install
 node startserver.js
 ```
