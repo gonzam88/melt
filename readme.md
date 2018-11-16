@@ -46,4 +46,4 @@ Feel free to suggest improvements, submit issues or pull request new features/fi
 
 You are most invited to open the developer console, poke around, break things and hack your way.
 
-made by [Gonzalo Moiguer](gonzamoiguer.com.ar)
+made by [Gonzalo Moiguer](https://www.gonzamoiguer.com.ar)
