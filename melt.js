@@ -849,31 +849,6 @@ function UpdatePositionMetadata(vec){
 }
 
 
-
-function serverConnected() {
-    console.log("We are connected!");
-	wsConnected = true;
-	dom.get("#ws-alert").hide();
-}
-
-// Got the list of ports
-function gotList(thelist) {
-  $('.ui.basic.modal').modal('show');
-  // theList is an array of their names
-  dom.get("#serial_connections").html("");
-  let serialConnectionsContent = "";
-  for (var i = 0; i < thelist.length; i++) {
-    // Display in the console
-    var icon = "microchip";
-    if(thelist[i].includes("Bluetooth")){
-      icon = "bluetooth";
-    }
-    serialConnectionsContent += '<div class="ui green basic cancel inverted button" data-connectto="'+ thelist[i] +'"><i class="'+icon+' icon"></i> '+thelist[i]+'</div>';
-  }
-  dom.get("#serial_connections").html(serialConnectionsContent);
-}
-
-
 // *********************
 //
 // Serial & Socket Communication
