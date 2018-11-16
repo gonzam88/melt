@@ -12,7 +12,7 @@ My main goal when making Melt was to create a way to write creative code as if i
 The controller UI is a basic web page that runs on your computer. The file containing all the logic is *melt.js*, where the controller and several libraries are managed.
 Because a web page can't communicate through the serial port I use the p5.serialport library on Node, in between. p5.serialport opens a socket which the web page connects to, like this:
 
-*Melt* << socket >> *p5.serialport* << serial >> *polargraph server on arduino*
+`*Melt* << socket >> *p5.serialport* << serial >> *polargraph server on arduino*`
 
 ## Install
 
@@ -24,7 +24,8 @@ Because a web page can't communicate through the serial port I use the p5.serial
 4. There are many ways to install, described on their docs site. This is the simplest. in Terminal / Command Line:
 ```cd path/to/p5.serialport
 npm install
-node startserver.js```
+node startserver.js
+```
 Last step is required everytime you want to use melt.
 5. Either a) Drag and drop index.html to your browser, or b) Run a local server like Mamp/Wamp and enter through localhost/melt. Option b has a few benefits from using web workers, but both are supported.
 
